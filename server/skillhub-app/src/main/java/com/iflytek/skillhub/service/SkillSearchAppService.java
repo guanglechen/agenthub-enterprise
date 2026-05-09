@@ -1,6 +1,7 @@
 package com.iflytek.skillhub.service;
 
 import com.iflytek.skillhub.auth.rbac.RbacService;
+import com.iflytek.skillhub.domain.catalog.SkillCatalogProfileService;
 import com.iflytek.skillhub.domain.namespace.Namespace;
 import com.iflytek.skillhub.domain.namespace.NamespaceRepository;
 import com.iflytek.skillhub.domain.namespace.NamespaceRole;
@@ -18,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -37,6 +39,7 @@ public class SkillSearchAppService {
     private final NamespaceService namespaceService;
     private final SkillLifecycleProjectionService skillLifecycleProjectionService;
     private final RbacService rbacService;
+    private final SkillCatalogProfileService skillCatalogProfileService;
 
     public SkillSearchAppService(
             SearchQueryService searchQueryService,
@@ -45,12 +48,25 @@ public class SkillSearchAppService {
             NamespaceService namespaceService,
             SkillLifecycleProjectionService skillLifecycleProjectionService,
             RbacService rbacService) {
+        this(searchQueryService, skillRepository, namespaceRepository, namespaceService, skillLifecycleProjectionService, rbacService, null);
+    }
+
+    @Autowired
+    public SkillSearchAppService(
+            SearchQueryService searchQueryService,
+            SkillRepository skillRepository,
+            NamespaceRepository namespaceRepository,
+            NamespaceService namespaceService,
+            SkillLifecycleProjectionService skillLifecycleProjectionService,
+            RbacService rbacService,
+            SkillCatalogProfileService skillCatalogProfileService) {
         this.searchQueryService = searchQueryService;
         this.skillRepository = skillRepository;
         this.namespaceRepository = namespaceRepository;
         this.namespaceService = namespaceService;
         this.skillLifecycleProjectionService = skillLifecycleProjectionService;
         this.rbacService = rbacService;
+        this.skillCatalogProfileService = skillCatalogProfileService;
     }
 
     public record SearchResponse(
@@ -68,7 +84,7 @@ public class SkillSearchAppService {
             int size,
             String userId,
             Map<Long, NamespaceRole> userNsRoles) {
-        return search(keyword, namespaceSlug, sortBy, page, size, List.of(), userId, userNsRoles);
+        return search(keyword, namespaceSlug, sortBy, page, size, List.of(), null, null, null, null, null, userId, userNsRoles);
     }
 
     public SearchResponse search(
@@ -80,12 +96,29 @@ public class SkillSearchAppService {
             List<String> labelSlugs,
             String userId,
             Map<Long, NamespaceRole> userNsRoles) {
+        return search(keyword, namespaceSlug, sortBy, page, size, labelSlugs, null, null, null, null, null, userId, userNsRoles);
+    }
+
+    public SearchResponse search(
+            String keyword,
+            String namespaceSlug,
+            String sortBy,
+            int page,
+            int size,
+            List<String> labelSlugs,
+            String assetType,
+            String domain,
+            String stage,
+            String topology,
+            String stack,
+            String userId,
+            Map<Long, NamespaceRole> userNsRoles) {
 
         Long namespaceId = resolveNamespaceId(namespaceSlug, userId, userNsRoles);
 
         SearchVisibilityScope scope = buildVisibilityScope(userId, userNsRoles);
 
-        return searchVisibleSkills(keyword, namespaceId, sortBy != null ? sortBy : "newest", page, size, labelSlugs, scope);
+        return searchVisibleSkills(keyword, namespaceId, sortBy != null ? sortBy : "newest", page, size, labelSlugs, assetType, domain, stage, topology, stack, scope);
     }
 
     private Long resolveNamespaceId(String namespaceSlug, String userId, Map<Long, NamespaceRole> userNsRoles) {
@@ -133,6 +166,11 @@ public class SkillSearchAppService {
             int page,
             int size,
             List<String> labelSlugs,
+            String assetType,
+            String domain,
+            String stage,
+            String topology,
+            String stack,
             SearchVisibilityScope scope) {
         SearchResult result = searchQueryService.search(new SearchQuery(
                 keyword,
@@ -141,7 +179,12 @@ public class SkillSearchAppService {
                 sortBy,
                 page,
                 size,
-                normalizeLabelSlugs(labelSlugs)
+                normalizeLabelSlugs(labelSlugs),
+                normalizeCatalogFilter(assetType),
+                normalizeCatalogFilter(domain),
+                normalizeCatalogFilter(stage),
+                normalizeCatalogFilter(topology),
+                normalizeCatalogFilter(stack)
         ));
         List<SkillSummaryResponse> pageItems = mapVisibleSkillSummaries(result.skillIds());
         return new SearchResponse(pageItems, result.total(), page, size);
@@ -179,18 +222,26 @@ public class SkillSearchAppService {
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getSlug()));
         Map<Long, SkillLifecycleProjectionService.Projection> projectionsBySkillId =
                 skillLifecycleProjectionService.projectPublishedSummaries(matchedSkills);
+        Map<Long, SkillCatalogProfileService.CatalogProfileView> catalogProfilesBySkillId =
+                skillCatalogProfileService == null ? Map.of() : skillCatalogProfileService.resolveForSkills(matchedSkills);
 
         return skillIds.stream()
                 .map(skillsById::get)
                 .filter(java.util.Objects::nonNull)
-                .map(skill -> toSummaryResponse(skill, namespaceSlugsById, projectionsBySkillId.get(skill.getId())))
+                .map(skill -> toSummaryResponse(
+                        skill,
+                        namespaceSlugsById,
+                        projectionsBySkillId.get(skill.getId()),
+                        catalogProfilesBySkillId.get(skill.getId())
+                ))
                 .toList();
     }
 
     private SkillSummaryResponse toSummaryResponse(
             Skill skill,
             Map<Long, String> namespaceSlugsById,
-            SkillLifecycleProjectionService.Projection projection) {
+            SkillLifecycleProjectionService.Projection projection,
+            SkillCatalogProfileService.CatalogProfileView catalogProfile) {
         String namespaceSlug = namespaceSlugsById.get(skill.getNamespaceId());
 
         return new SkillSummaryResponse(
@@ -210,8 +261,43 @@ public class SkillSearchAppService {
                 toLifecycleVersion(projection.headlineVersion()),
                 toLifecycleVersion(projection.publishedVersion()),
                 toLifecycleVersion(projection.ownerPreviewVersion()),
-                projection.resolutionMode().name()
+                projection.resolutionMode().name(),
+                toCatalogResponse(catalogProfile),
+                catalogProfile != null ? catalogProfile.relations().size() : 0,
+                null
         );
+    }
+
+    private com.iflytek.skillhub.dto.SkillCatalogProfileResponse toCatalogResponse(
+            SkillCatalogProfileService.CatalogProfileView profile) {
+        if (profile == null) {
+            return null;
+        }
+        return new com.iflytek.skillhub.dto.SkillCatalogProfileResponse(
+                profile.assetType(),
+                profile.domain(),
+                profile.stage(),
+                profile.topology(),
+                profile.stack(),
+                profile.ownerTeam(),
+                profile.keywords(),
+                profile.maintenanceMode(),
+                profile.relations().stream()
+                        .map(relation -> new com.iflytek.skillhub.dto.SkillCatalogRelationResponse(
+                                relation.type(),
+                                relation.target(),
+                                relation.title(),
+                                relation.note()
+                        ))
+                        .toList()
+        );
+    }
+
+    private String normalizeCatalogFilter(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     private com.iflytek.skillhub.dto.SkillLifecycleVersionResponse toLifecycleVersion(

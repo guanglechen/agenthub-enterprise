@@ -106,6 +106,7 @@ vi.mock('@/shared/hooks/use-skill-queries', () => ({
   useAttachSkillLabel: () => ({ mutate: vi.fn(), isPending: false }),
   useDetachSkillLabel: () => ({ mutate: vi.fn(), isPending: false }),
   useSkillVersions: (...args: unknown[]) => useSkillVersionsMock(...args),
+  useSkillRecommendations: () => ({ data: [] }),
   useSkillVersionDetail: () => ({ data: undefined }),
   useSkillFiles: () => ({ data: [] }),
   useSkillReadme: () => ({ data: '# Demo', error: null }),

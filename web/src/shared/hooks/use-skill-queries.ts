@@ -1,5 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { SkillSummary, SkillDetail, SkillVersion, SkillVersionDetail, SkillVersionCompare, SkillFile, SearchParams, PagedResponse, PublishResult } from '@/api/types'
+import type {
+  CatalogProfile,
+  CatalogUpsertRequest,
+  RecommendationContextRequest,
+  RecommendationItem,
+  SearchParams,
+  SkillDetail,
+  SkillFile,
+  SkillSummary,
+  SkillVersion,
+  SkillVersionCompare,
+  SkillVersionDetail,
+  PagedResponse,
+  PublishResult,
+} from '@/api/types'
 import { fetchJson, fetchText, getCsrfHeaders, skillLifecycleApi, WEB_API_PREFIX } from '@/api/client'
 import { clearDeletedSkillQueries } from '@/features/skill/skill-delete-flow'
 import { getSkillDetailQueryKey } from './query-keys'
@@ -14,6 +28,37 @@ async function searchSkills(params: SearchParams): Promise<PagedResponse<SkillSu
 async function getSkillDetail(namespace: string, slug: string): Promise<SkillDetail> {
   const cleanNamespace = namespace.startsWith('@') ? namespace.slice(1) : namespace
   return fetchJson<SkillDetail>(`${WEB_API_PREFIX}/skills/${cleanNamespace}/${encodeURIComponent(slug)}`)
+}
+
+async function getSkillCatalog(namespace: string, slug: string): Promise<CatalogProfile> {
+  const cleanNamespace = namespace.startsWith('@') ? namespace.slice(1) : namespace
+  return fetchJson<CatalogProfile>(`${WEB_API_PREFIX}/skills/${cleanNamespace}/${encodeURIComponent(slug)}/catalog`)
+}
+
+async function updateSkillCatalog(namespace: string, slug: string, body: CatalogUpsertRequest): Promise<CatalogProfile> {
+  const cleanNamespace = namespace.startsWith('@') ? namespace.slice(1) : namespace
+  return fetchJson<CatalogProfile>(`${WEB_API_PREFIX}/skills/${cleanNamespace}/${encodeURIComponent(slug)}/catalog`, {
+    method: 'PUT',
+    headers: getCsrfHeaders({
+      'Content-Type': 'application/json',
+    }),
+    body: JSON.stringify(body),
+  })
+}
+
+async function getSkillRecommendations(namespace: string, slug: string): Promise<RecommendationItem[]> {
+  const cleanNamespace = namespace.startsWith('@') ? namespace.slice(1) : namespace
+  return fetchJson<RecommendationItem[]>(`${WEB_API_PREFIX}/skills/${cleanNamespace}/${encodeURIComponent(slug)}/recommendations`)
+}
+
+async function getContextRecommendations(body: RecommendationContextRequest): Promise<RecommendationItem[]> {
+  return fetchJson<RecommendationItem[]>(`${WEB_API_PREFIX}/recommendations/context`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
 }
 
 async function getSkillVersions(namespace: string, slug: string): Promise<SkillVersion[]> {
@@ -73,6 +118,30 @@ export function useSkillDetail(namespace: string, slug: string, enabled = true) 
     queryFn: () => getSkillDetail(namespace, slug),
     enabled: enabled && !!namespace && !!slug,
     refetchOnMount: 'always',
+  })
+}
+
+export function useSkillCatalog(namespace: string, slug: string, enabled = true) {
+  return useQuery({
+    queryKey: ['skills', namespace, slug, 'catalog'],
+    queryFn: () => getSkillCatalog(namespace, slug),
+    enabled: enabled && !!namespace && !!slug,
+  })
+}
+
+export function useSkillRecommendations(namespace: string, slug: string, enabled = true) {
+  return useQuery({
+    queryKey: ['skills', namespace, slug, 'recommendations'],
+    queryFn: () => getSkillRecommendations(namespace, slug),
+    enabled: enabled && !!namespace && !!slug,
+  })
+}
+
+export function useContextRecommendations(body: RecommendationContextRequest, enabled = true) {
+  return useQuery({
+    queryKey: ['skills', 'recommendations', 'context', body],
+    queryFn: () => getContextRecommendations(body),
+    enabled,
   })
 }
 
@@ -140,6 +209,21 @@ export function usePublishSkill() {
       skipGlobalErrorHandler: true,
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['skills'] })
+    },
+  })
+}
+
+export function useUpdateSkillCatalog() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ namespace, slug, body }: { namespace: string; slug: string; body: CatalogUpsertRequest }) =>
+      updateSkillCatalog(namespace, slug, body),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['skills', variables.namespace, variables.slug] })
+      queryClient.invalidateQueries({ queryKey: ['skills', variables.namespace, variables.slug, 'catalog'] })
+      queryClient.invalidateQueries({ queryKey: ['skills', variables.namespace, variables.slug, 'recommendations'] })
       queryClient.invalidateQueries({ queryKey: ['skills'] })
     },
   })

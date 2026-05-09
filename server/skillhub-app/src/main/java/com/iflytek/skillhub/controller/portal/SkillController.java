@@ -22,6 +22,7 @@ import com.iflytek.skillhub.dto.SkillVersionDetailResponse;
 import com.iflytek.skillhub.dto.SkillVersionResponse;
 import com.iflytek.skillhub.metrics.SkillHubMetrics;
 import com.iflytek.skillhub.ratelimit.RateLimit;
+import com.iflytek.skillhub.service.SkillCatalogAppService;
 import com.iflytek.skillhub.service.SkillLabelAppService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
@@ -50,18 +51,21 @@ public class SkillController extends BaseApiController {
     private final SkillQueryService skillQueryService;
     private final SkillDownloadService skillDownloadService;
     private final SkillLabelAppService skillLabelAppService;
+    private final SkillCatalogAppService skillCatalogAppService;
     private final SkillHubMetrics metrics;
 
     public SkillController(
             SkillQueryService skillQueryService,
             SkillDownloadService skillDownloadService,
             SkillLabelAppService skillLabelAppService,
+            SkillCatalogAppService skillCatalogAppService,
             SkillHubMetrics metrics,
             ApiResponseFactory responseFactory) {
         super(responseFactory);
         this.skillQueryService = skillQueryService;
         this.skillDownloadService = skillDownloadService;
         this.skillLabelAppService = skillLabelAppService;
+        this.skillCatalogAppService = skillCatalogAppService;
         this.metrics = metrics;
     }
 
@@ -78,6 +82,9 @@ public class SkillController extends BaseApiController {
 
         SkillQueryService.SkillDetailDTO detail = skillQueryService.getSkillDetail(
                 namespace, slug, userId, userNsRoles != null ? userNsRoles : Map.of());
+
+        var catalogProfile = skillCatalogAppService.getCatalog(namespace, slug, userId, userNsRoles != null ? userNsRoles : Map.of());
+        var relatedSkills = skillCatalogAppService.getRelatedSkills(namespace, slug, userId, userNsRoles != null ? userNsRoles : Map.of());
 
         SkillDetailResponse response = new SkillDetailResponse(
                 detail.id(),
@@ -104,7 +111,10 @@ public class SkillController extends BaseApiController {
                 toLifecycleVersion(detail.publishedVersion()),
                 toLifecycleVersion(detail.ownerPreviewVersion()),
                 detail.ownerPreviewReviewComment(),
-                detail.resolutionMode()
+                detail.resolutionMode(),
+                catalogProfile,
+                relatedSkills,
+                skillCatalogAppService.buildRecommendationReasonHints(detail.downloadCount(), catalogProfile)
         );
 
         return ok("response.success.read", response);

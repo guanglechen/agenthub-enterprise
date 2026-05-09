@@ -199,10 +199,26 @@ const searchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'search',
   component: SearchPage,
-  validateSearch: (search: Record<string, unknown>): { q: string; label?: string; sort: string; page: number; starredOnly: boolean } => {
+  validateSearch: (search: Record<string, unknown>): {
+    q: string
+    label?: string
+    assetType?: string
+    domain?: string
+    stage?: string
+    topology?: string
+    stack?: string
+    sort: string
+    page: number
+    starredOnly: boolean
+  } => {
     return {
       q: normalizeSearchQuery(typeof search.q === 'string' ? search.q : ''),
       label: typeof search.label === 'string' && search.label ? search.label : undefined,
+      assetType: typeof search.assetType === 'string' && search.assetType ? search.assetType : undefined,
+      domain: typeof search.domain === 'string' && search.domain ? search.domain : undefined,
+      stage: typeof search.stage === 'string' && search.stage ? search.stage : undefined,
+      topology: typeof search.topology === 'string' && search.topology ? search.topology : undefined,
+      stack: typeof search.stack === 'string' && search.stack ? search.stack : undefined,
       sort: (search.sort as string) || 'newest',
       page: Number(search.page) || 0,
       starredOnly: search.starredOnly === true || search.starredOnly === 'true',

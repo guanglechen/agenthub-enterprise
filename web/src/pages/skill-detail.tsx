@@ -32,6 +32,14 @@ import { getSkillSquareSearch, normalizeSkillDetailReturnTo } from '@/shared/lib
 import { formatCompactCount } from '@/shared/lib/number-format'
 import { resolveDocumentationFilePath } from '@/shared/lib/skill-documentation'
 import { getHeadlineVersion, getOwnerPreviewVersion, getPublishedVersion } from '@/shared/lib/skill-lifecycle'
+import {
+  ASSET_TYPE_OPTIONS,
+  MAINTENANCE_MODE_OPTIONS,
+  STAGE_OPTIONS,
+  TOPOLOGY_OPTIONS,
+  buildRecommendationReasonLabel,
+  getCatalogOptionLabel,
+} from '@/shared/lib/catalog'
 import { NamespaceBadge } from '@/shared/components/namespace-badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shared/ui/tabs'
 import { Button } from '@/shared/ui/button'
@@ -53,6 +61,7 @@ import {
   useDeleteSkill,
   useDeleteSkillVersion,
   useRereleaseSkillVersion,
+  useSkillRecommendations,
   useUnarchiveSkill,
   useWithdrawSkillReview,
   useSubmitForReview,
@@ -164,6 +173,7 @@ export function SkillDetailPage() {
   const diffCompareDocumentationPath = resolveDocumentationFilePath(diffCompareFiles)
   const { data: diffSourceReadme } = useSkillReadme(qns, qslug, diffSourceVersion ?? undefined, diffSourceDocumentationPath, skillReady)
   const { data: diffCompareReadme } = useSkillReadme(qns, qslug, diffCompareVersion ?? undefined, diffCompareDocumentationPath, skillReady)
+  const { data: recommendations } = useSkillRecommendations(qns, qslug, skillReady)
   const governanceVisible = hasRole('SKILL_ADMIN') || hasRole('SUPER_ADMIN')
   const canHideSkill = hasRole('SUPER_ADMIN')
   const isPendingPreview = skill?.resolutionMode === 'OWNER_PREVIEW' && headlineVersion?.status === 'PENDING_REVIEW'
@@ -179,6 +189,8 @@ export function SkillDetailPage() {
   const canHardDeleteSkill = Boolean(skill && user && (skill.ownerId === user.userId || hasRole('SUPER_ADMIN')))
   const canManageLabels = Boolean(skill && user && (skill.canManageLifecycle || hasRole('SUPER_ADMIN')))
   const isVersionDownloadable = selectedVersionEntry?.status === 'PUBLISHED' && (selectedVersionEntry?.downloadAvailable ?? false)
+  const catalogProfile = skill?.catalogProfile
+  const relatedSkills = skill?.relatedSkills ?? []
 
   useEffect(() => {
     // Recompute collapse rules whenever rendered documentation height changes so the page can keep
@@ -776,6 +788,44 @@ export function SkillDetailPage() {
           {skill.summary && (
             <p className="text-lg text-muted-foreground leading-relaxed">{skill.summary}</p>
           )}
+          {catalogProfile && (
+            <div className="rounded-2xl border border-border/60 bg-white/80 p-4 shadow-sm">
+              <div className="mb-3 text-sm font-semibold text-foreground">资产画像</div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl bg-slate-50 px-3 py-2">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">资产类型</div>
+                  <div className="mt-1 text-sm font-medium text-slate-700">
+                    {getCatalogOptionLabel(ASSET_TYPE_OPTIONS, catalogProfile.assetType) ?? '未分类'}
+                  </div>
+                </div>
+                <div className="rounded-xl bg-slate-50 px-3 py-2">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">业务域</div>
+                  <div className="mt-1 text-sm font-medium text-slate-700">{catalogProfile.domain || '未声明'}</div>
+                </div>
+                <div className="rounded-xl bg-slate-50 px-3 py-2">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">适用阶段</div>
+                  <div className="mt-1 text-sm font-medium text-slate-700">
+                    {getCatalogOptionLabel(STAGE_OPTIONS, catalogProfile.stage) ?? '未声明'}
+                  </div>
+                </div>
+                <div className="rounded-xl bg-slate-50 px-3 py-2">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">技术拓扑</div>
+                  <div className="mt-1 text-sm font-medium text-slate-700">
+                    {getCatalogOptionLabel(TOPOLOGY_OPTIONS, catalogProfile.topology) ?? '未声明'}
+                  </div>
+                </div>
+              </div>
+              {(catalogProfile.stack?.length ?? 0) > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {catalogProfile.stack.map((item) => (
+                    <span key={item} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {(skill.labels?.length ?? 0) > 0 && (
             <div className="flex flex-wrap gap-2">
               {skill.labels!.map((label) => (
@@ -792,6 +842,37 @@ export function SkillDetailPage() {
                 </span>
               ))}
             </div>
+          )}
+          {relatedSkills.length > 0 && (
+            <Card className="p-5 space-y-4">
+              <div className="text-base font-semibold text-foreground">关联能力</div>
+              <div className="grid gap-3">
+                {relatedSkills.map((item) => {
+                  const relatedPath = item.namespace && item.slug ? `/space/${item.namespace}/${encodeURIComponent(item.slug)}` : null
+                  return (
+                    <div key={`${item.type}-${item.target}`} className="rounded-xl border border-border/60 bg-secondary/20 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-600">{item.type}</span>
+                        <span className="text-sm font-medium text-foreground">{item.title || item.displayName || item.target}</span>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {item.summary || item.note || item.target}
+                      </p>
+                      {item.resolved && relatedPath && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-3 px-0 text-primary"
+                          onClick={() => navigate({ to: relatedPath })}
+                        >
+                          查看能力详情
+                        </Button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </Card>
           )}
           {isPendingPreview && (
             <Card className="border-amber-500/30 bg-amber-500/5 p-4 text-sm text-muted-foreground">
@@ -1175,8 +1256,57 @@ export function SkillDetailPage() {
           description={skill.summary}
         />
 
+        {recommendations && recommendations.length > 0 && (
+          <Card className="p-5 space-y-4">
+            <div className="text-sm font-semibold text-foreground">推荐能力</div>
+            <div className="space-y-3">
+              {recommendations.slice(0, 4).map((item) => (
+                <button
+                  key={item.skillId}
+                  type="button"
+                  className="w-full rounded-xl border border-border/60 bg-background px-4 py-3 text-left transition-colors hover:bg-secondary/20"
+                  onClick={() => navigate({ to: `/space/${item.namespace}/${encodeURIComponent(item.slug)}` })}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-medium text-foreground">{item.displayName}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">{item.summary}</div>
+                    </div>
+                    <div className="text-xs font-medium text-slate-500">#{item.score.toFixed(1)}</div>
+                  </div>
+                  {item.reasons.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {item.reasons.map((reason) => (
+                        <span key={reason} className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
+                          {buildRecommendationReasonLabel(reason)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </Card>
+        )}
+
         {skill.canManageLifecycle && selectedVersionEntry && (
           <SecurityAuditSummary skillId={skill.id} versionId={selectedVersionEntry.id} versionStatus={selectedVersionEntry.status} />
+        )}
+
+        {catalogProfile && (
+          <Card className="p-5 space-y-3">
+            <div className="text-sm font-semibold text-foreground">维护信息</div>
+            <div className="rounded-xl border border-border/60 bg-secondary/20 p-3">
+              <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">责任团队</div>
+              <div className="mt-2 text-sm font-semibold text-foreground">{catalogProfile.ownerTeam || '未声明'}</div>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-secondary/20 p-3">
+              <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">维护模式</div>
+              <div className="mt-2 text-sm font-semibold text-foreground">
+                {getCatalogOptionLabel(MAINTENANCE_MODE_OPTIONS, catalogProfile.maintenanceMode) ?? '未声明'}
+              </div>
+            </div>
+          </Card>
         )}
 
         <SkillLabelPanel

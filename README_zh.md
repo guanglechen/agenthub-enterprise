@@ -1,13 +1,12 @@
 <div align="center">
   <img src="./skillhub-logo.svg" alt="SkillHub Logo" width="120" height="120" />
-  <h1>SkillHub</h1>
-  <p>企业级开源智能体技能注册中心 — 在组织内发布、发现和管理可复用的技能包</p>
+  <h1>AgentHub Enterprise</h1>
+  <p>面向企业研发团队的 AI 开发资产中心 — 发布、发现和治理产品方案、脚手架、微服务 Skill 与质量能力</p>
 </div>
 
 <div align="center">
 
 [![文档](https://img.shields.io/badge/docs-zread.ai-4A90E2?logo=gitbook&logoColor=white)](https://zread.ai/iflytek/skillhub)
-[![Discord](https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/qHYvtDNPHS)
 [![许可证](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
 [![构建](https://github.com/iflytek/skillhub/actions/workflows/publish-images.yml/badge.svg)](https://github.com/iflytek/skillhub/actions/workflows/publish-images.yml)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ED?logo=docker&logoColor=white)](https://ghcr.io/iflytek/skillhub)
@@ -22,24 +21,27 @@
   <img src="https://xfyun-doc.xfyun.cn/lc-sp-skillhub-demo-1775551643410.gif" alt="SkillHub Demo" width="800" />
 </div>
 
-SkillHub 是一个自托管平台，为团队提供私有的、受治理的智能体技能共享空间。发布技能包，推送到命名空间，让其他人通过搜索发现或通过 CLI 安装。专为防火墙后的本地部署而构建，提供与公共注册中心相同的精致体验。
+AgentHub Enterprise 是一个面向企业研发场景的私有化开发资产中心。平台保留 skill package 作为权威发布单元，同时在其上叠加企业目录画像，让团队能够围绕产品方案、开发脚手架、业务能力、微服务 Skill、质量治理和平台集成进行统一沉淀、搜索、推荐与自动化分发。
 
 ## 文档
 
-- 📖 **[用户指南](https://iflytek.github.io/skillhub/)** — 技能发布、搜索、CLI 使用等用户操作指南
+- 📖 **[用户指南](https://iflytek.github.io/skillhub/)** — 研发资产发布、搜索、CLI 使用与团队接入说明
 - 🛠️ **[开发者文档](https://zread.ai/iflytek/skillhub)** — 架构设计、API 参考、本地开发、部署运维等技术文档
+- 🏢 **[企业内网私有化部署 Playbook](docs/22-enterprise-private-deployment-playbook.md)** — 从内网仓库拉源码、构建内网镜像、部署到公司网络并接入 Agent 的落地指南
+- 🤖 **[本地 Claude Code 插件接入](docs/21-local-claude-plugin-connector.md)** — 平台画像读取、安装计划生成与本地 `.claude/skills` 安装闭环
 
 ## 核心特性
 
 - **自托管与私有化** — 部署在您自己的基础设施上。将专有技能保留在防火墙后，完全掌控数据主权。一条 `make dev-all` 命令即可在本地运行。
-- **发布与版本管理** — 上传智能体技能包，支持语义化版本控制、自定义标签（`beta`、`stable`）和自动 `latest` 跟踪。
-- **发现** — 全文搜索，支持按命名空间、下载量、评分和时间筛选。可见性规则确保用户只能看到其有权访问的内容。
+- **研发资产目录** — 围绕 `product / scaffold / business / microservice / quality / integration` 六类企业开发资产组织内容。
+- **发布与版本管理** — 上传 skill package，支持语义化版本控制、自定义标签（`beta`、`stable`）和自动 `latest` 跟踪。
+- **发现与推荐** — 全文搜索支持按资产类型、业务域、研发阶段、技术拓扑、技术栈、标签等组合筛选，并提供可解释推荐。
 - **团队命名空间** — 在团队或全局范围下组织技能。每个命名空间拥有自己的成员、角色（Owner / Admin / Member）和发布策略。
 - **审核与治理** — 团队管理员在其命名空间内审核；平台管理员控制向全局范围的推广。治理操作记录审计日志以满足合规要求。
-- **社交功能** — 收藏技能、评分并跟踪下载量。围绕组织的最佳实践构建社区。
+- **Agent 自维护** — `agenthub-cli` 支持搜索、上传、分类、标签、关联关系和推荐查询，适合 Claude Code / AI Agent 自动化操作。
 - **账户合并** — 将多个 OAuth 身份和 API 令牌整合到单个用户账户下。
 - **API 令牌管理** — 为 CLI 和程序化访问生成作用域令牌，采用基于前缀的安全哈希。
-- **CLI 优先** — 原生 REST API，加上对现有 ClawHub 风格注册中心客户端的兼容层。原生 CLI API 是主要支持路径，协议兼容性持续扩展中。
+- **CLI 优先** — 原生 REST API，加上对现有 ClawHub 风格注册中心客户端的兼容层。企业自动化推荐使用 `agenthub-cli`。
 - **可插拔存储** — 开发环境使用本地文件系统，生产环境使用 S3 / MinIO。通过配置切换。
 - **国际化** — 使用 i18next 支持多语言。
 

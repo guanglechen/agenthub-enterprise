@@ -39,6 +39,12 @@ public class PostgresFullTextQueryService implements SearchQueryService {
     private static final int SHORT_PREFIX_LENGTH = 2;
     private static final String TITLE_VECTOR_SQL = "to_tsvector('simple', coalesce(title, ''))";
     private static final String TITLE_SQL = "LOWER(title)";
+    private static final String ASSET_TYPE_SQL = "COALESCE(NULLIF(LOWER(cp.asset_type), ''), LOWER(CAST(sv.parsed_metadata_json -> 'frontmatter' ->> 'x-agenthub-asset-type' AS TEXT)))";
+    private static final String DOMAIN_SQL = "COALESCE(NULLIF(LOWER(cp.domain), ''), LOWER(CAST(sv.parsed_metadata_json -> 'frontmatter' ->> 'x-agenthub-domain' AS TEXT)))";
+    private static final String STAGE_SQL = "COALESCE(NULLIF(LOWER(cp.stage), ''), LOWER(CAST(sv.parsed_metadata_json -> 'frontmatter' ->> 'x-agenthub-stage' AS TEXT)))";
+    private static final String TOPOLOGY_SQL = "COALESCE(NULLIF(LOWER(cp.topology), ''), LOWER(CAST(sv.parsed_metadata_json -> 'frontmatter' ->> 'x-agenthub-topology' AS TEXT)))";
+    private static final String STACK_SQL = "COALESCE(cp.stack_json, sv.parsed_metadata_json -> 'frontmatter' -> 'x-agenthub-stack', CAST('[]' AS jsonb))";
+    private static final String RELATIONS_SQL = "COALESCE(cp.relations_json, sv.parsed_metadata_json -> 'frontmatter' -> 'x-agenthub-relations', CAST('[]' AS jsonb))";
 
     private final EntityManager entityManager;
     private final SkillSearchDocumentJpaRepository searchDocumentRepository;
@@ -107,6 +113,8 @@ public class PostgresFullTextQueryService implements SearchQueryService {
         sql.append("FROM skill_search_document d ");
         sql.append("JOIN skill s ON s.id = d.skill_id ");
         sql.append("JOIN namespace n ON n.id = d.namespace_id ");
+        sql.append("LEFT JOIN skill_catalog_profile cp ON cp.skill_id = s.id ");
+        sql.append("LEFT JOIN skill_version sv ON sv.id = s.latest_version_id ");
         sql.append("WHERE 1=1 ");
 
         // Visibility filtering
@@ -139,6 +147,22 @@ public class PostgresFullTextQueryService implements SearchQueryService {
             sql.append(") ");
         }
 
+        if (query.assetType() != null) {
+            sql.append("AND ").append(ASSET_TYPE_SQL).append(" = :assetType ");
+        }
+        if (query.domain() != null) {
+            sql.append("AND ").append(DOMAIN_SQL).append(" = :domain ");
+        }
+        if (query.stage() != null) {
+            sql.append("AND ").append(STAGE_SQL).append(" = :stage ");
+        }
+        if (query.topology() != null) {
+            sql.append("AND ").append(TOPOLOGY_SQL).append(" = :topology ");
+        }
+        if (query.stack() != null) {
+            sql.append("AND jsonb_exists(").append(STACK_SQL).append(", :stack) ");
+        }
+
         // Full-text search
         if (hasKeyword) {
             sql.append("AND (");
@@ -157,6 +181,9 @@ public class PostgresFullTextQueryService implements SearchQueryService {
         // Sorting
         if ("downloads".equals(query.sortBy())) {
             sql.append("ORDER BY s.download_count DESC, s.updated_at DESC, d.skill_id DESC ");
+        } else if ("recommended".equals(query.sortBy())) {
+            sql.append("ORDER BY jsonb_array_length(").append(RELATIONS_SQL)
+                    .append(") DESC, s.download_count DESC, s.updated_at DESC, d.skill_id DESC ");
         } else if ("rating".equals(query.sortBy())) {
             sql.append("ORDER BY s.rating_avg DESC, s.updated_at DESC, d.skill_id DESC ");
         } else if ("newest".equals(query.sortBy())) {
@@ -194,6 +221,21 @@ public class PostgresFullTextQueryService implements SearchQueryService {
 
         if (query.labelSlugs() != null && !query.labelSlugs().isEmpty()) {
             nativeQuery.setParameter("labelSlugs", query.labelSlugs());
+        }
+        if (query.assetType() != null) {
+            nativeQuery.setParameter("assetType", query.assetType());
+        }
+        if (query.domain() != null) {
+            nativeQuery.setParameter("domain", query.domain());
+        }
+        if (query.stage() != null) {
+            nativeQuery.setParameter("stage", query.stage());
+        }
+        if (query.topology() != null) {
+            nativeQuery.setParameter("topology", query.topology());
+        }
+        if (query.stack() != null) {
+            nativeQuery.setParameter("stack", query.stack());
         }
 
         if (hasKeyword) {
@@ -238,6 +280,21 @@ public class PostgresFullTextQueryService implements SearchQueryService {
 
         if (query.labelSlugs() != null && !query.labelSlugs().isEmpty()) {
             countQuery.setParameter("labelSlugs", query.labelSlugs());
+        }
+        if (query.assetType() != null) {
+            countQuery.setParameter("assetType", query.assetType());
+        }
+        if (query.domain() != null) {
+            countQuery.setParameter("domain", query.domain());
+        }
+        if (query.stage() != null) {
+            countQuery.setParameter("stage", query.stage());
+        }
+        if (query.topology() != null) {
+            countQuery.setParameter("topology", query.topology());
+        }
+        if (query.stack() != null) {
+            countQuery.setParameter("stack", query.stack());
         }
 
         if (hasKeyword) {

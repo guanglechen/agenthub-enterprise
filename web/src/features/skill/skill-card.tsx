@@ -3,6 +3,7 @@ import { useAuth } from '@/features/auth/use-auth'
 import { useStar } from '@/features/social/use-star'
 import { Card } from '@/shared/ui/card'
 import { NamespaceBadge } from '@/shared/components/namespace-badge'
+import { buildCatalogBadgeSummary, buildCatalogMetaSummary } from '@/shared/lib/catalog'
 import { getHeadlineVersion } from '@/shared/lib/skill-lifecycle'
 import { formatCompactCount } from '@/shared/lib/number-format'
 import { Bookmark } from 'lucide-react'
@@ -22,11 +23,16 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
   const showStarredHighlight = highlightStarred && isAuthenticated && starStatus?.starred
   const headlineVersion = getHeadlineVersion(skill)
   const isInteractive = typeof onClick === 'function'
+  const badgeSummary = buildCatalogBadgeSummary(skill.catalogProfile)
+  const metaSummary = buildCatalogMetaSummary(skill.catalogProfile)
 
   return (
     <Card
-      className="h-full p-5 cursor-pointer group relative overflow-hidden bg-white border shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2"
-      style={{ borderColor: 'hsl(var(--border-card))' }}
+      className="h-full cursor-pointer group relative overflow-hidden border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2"
+      style={{
+        borderColor: 'hsl(var(--border-card))',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)',
+      }}
       onClick={onClick}
       onKeyDown={(event) => {
         if (!isInteractive) {
@@ -41,12 +47,25 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
       role={isInteractive ? 'link' : undefined}
       tabIndex={isInteractive ? 0 : undefined}
     >
-      <div className="flex h-full flex-col">
+      <div className="flex h-full flex-col p-5">
         <div className="flex items-start justify-between mb-3">
           <div className="space-y-2">
             <h3 className="font-semibold text-lg group-hover:text-primary transition-colors" style={{ color: 'hsl(var(--foreground))' }}>
               {skill.displayName}
             </h3>
+            {badgeSummary.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {badgeSummary.map((badge) => (
+                  <span
+                    key={badge}
+                    className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium text-slate-700"
+                    style={{ background: 'rgba(15,23,42,0.04)', borderColor: 'rgba(15,23,42,0.08)' }}
+                  >
+                    {badge}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <NamespaceBadge type="TEAM" name={`@${skill.namespace}`} />
@@ -57,6 +76,16 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
           <p className="text-sm text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
             {skill.summary}
           </p>
+        )}
+
+        {metaSummary.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2 text-xs text-slate-500">
+            {metaSummary.map((item) => (
+              <span key={item} className="rounded-full bg-slate-100 px-2.5 py-1">
+                {item}
+              </span>
+            ))}
+          </div>
         )}
 
         <div className="mt-auto flex items-center gap-4 text-xs text-muted-foreground">
@@ -77,6 +106,11 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
             <Bookmark className={`w-3.5 h-3.5 ${showStarredHighlight ? 'fill-current' : ''}`} />
             {skill.starCount}
           </span>
+          {typeof skill.relationCount === 'number' && skill.relationCount > 0 && (
+            <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">
+              关联 {skill.relationCount}
+            </span>
+          )}
           {skill.ratingAvg !== undefined && skill.ratingCount > 0 && (
             <span className="flex items-center gap-1">
               <svg className="w-3.5 h-3.5 text-primary" fill="currentColor" viewBox="0 0 20 20">

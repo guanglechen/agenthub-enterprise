@@ -17,7 +17,10 @@ public class RouteSecurityPolicyRegistry {
 
     private static final List<RouteAuthorizationPolicy> AUTHORIZATION_POLICIES = List.of(
             RouteAuthorizationPolicy.permitAll(null, "/api/v1/health"),
+            RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/v1/agent/profile"),
+            RouteAuthorizationPolicy.permitAll(HttpMethod.POST, "/api/v1/agent/install-plan"),
             RouteAuthorizationPolicy.permitAll(null, "/api/v1/search"),
+            RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/v1/search/skills"),
             RouteAuthorizationPolicy.permitAll(null, "/api/v1/resolve/**"),
             RouteAuthorizationPolicy.permitAll(null, "/api/v1/download/**"),
             RouteAuthorizationPolicy.permitAll(null, "/api/v1/auth/providers"),
@@ -67,6 +70,8 @@ public class RouteSecurityPolicyRegistry {
             RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/web/skills/*/*/tags/*/files"),
             RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/web/skills/*/*/tags/*/file"),
             RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/web/labels"),
+            RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/web/agent/profile"),
+            RouteAuthorizationPolicy.permitAll(HttpMethod.POST, "/api/web/agent/install-plan"),
             RouteAuthorizationPolicy.roles(HttpMethod.DELETE, "/api/v1/skills/id/*", "SUPER_ADMIN"),
             RouteAuthorizationPolicy.roles(HttpMethod.DELETE, "/api/v1/skills/*/*", "SUPER_ADMIN"),
             RouteAuthorizationPolicy.authenticated(HttpMethod.DELETE, "/api/web/skills/id/*"),
@@ -80,12 +85,15 @@ public class RouteSecurityPolicyRegistry {
 
     private static final List<ApiTokenPolicy> API_TOKEN_POLICIES = List.of(
             ApiTokenPolicy.allow(null, "/api/v1/health"),
+            ApiTokenPolicy.allow(HttpMethod.GET, "/api/v1/agent/profile"),
+            ApiTokenPolicy.allow(HttpMethod.POST, "/api/v1/agent/install-plan"),
             ApiTokenPolicy.allow(null, "/api/v1/auth/providers"),
             ApiTokenPolicy.allow(null, "/api/v1/auth/me"),
             ApiTokenPolicy.allow(null, "/api/v1/auth/device/**"),
             ApiTokenPolicy.allow(null, "/api/v1/check"),
             ApiTokenPolicy.allow(HttpMethod.GET, "/api/v1/whoami"),
             ApiTokenPolicy.allow(HttpMethod.GET, "/api/v1/search"),
+            ApiTokenPolicy.allow(HttpMethod.GET, "/api/v1/search/skills"),
             ApiTokenPolicy.allow(HttpMethod.GET, "/api/v1/skills"),
             ApiTokenPolicy.allow(HttpMethod.GET, "/api/v1/skills/**"),
             ApiTokenPolicy.allow(HttpMethod.GET, "/api/web/skills"),
@@ -106,6 +114,11 @@ public class RouteSecurityPolicyRegistry {
             ApiTokenPolicy.require(HttpMethod.DELETE, "/api/v1/skills/*/*", "skill:delete"),
             ApiTokenPolicy.require(HttpMethod.POST, "/api/v1/skills", "skill:publish"),
             ApiTokenPolicy.require(HttpMethod.POST, "/api/v1/skills/*/publish", "skill:publish"),
+            ApiTokenPolicy.require(HttpMethod.PUT, "/api/v1/skills/*/*/catalog", "skill:publish"),
+            ApiTokenPolicy.require(HttpMethod.PUT, "/api/v1/skills/*/*/relations", "skill:publish"),
+            ApiTokenPolicy.require(HttpMethod.PUT, "/api/v1/skills/*/*/labels/*", "skill:publish"),
+            ApiTokenPolicy.require(HttpMethod.DELETE, "/api/v1/skills/*/*/labels/*", "skill:publish"),
+            ApiTokenPolicy.require(HttpMethod.POST, "/api/v1/recommendations/context", "skill:read"),
             ApiTokenPolicy.require(HttpMethod.POST, "/api/web/skills/*/publish", "skill:publish"),
             ApiTokenPolicy.require(HttpMethod.POST, "/api/v1/publish", "skill:publish")
     );

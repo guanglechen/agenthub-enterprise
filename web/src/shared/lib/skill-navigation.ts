@@ -6,6 +6,11 @@ export function getSkillSquareSearch() {
     q: '',
     sort: 'relevance' as const,
     page: 0,
+    assetType: undefined,
+    domain: undefined,
+    stage: undefined,
+    topology: undefined,
+    stack: undefined,
     starredOnly: false,
   }
 }

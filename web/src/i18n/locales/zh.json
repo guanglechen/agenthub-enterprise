@@ -12,11 +12,11 @@
   },
   "landing": {
     "hero": {
-      "title": "发现与分享 AI 技能",
-      "subtitle": "使用社区驱动的技能构建强大的 AI 代理",
-      "searchPlaceholder": "搜索技能...",
-      "exploreSkills": "探索技能",
-      "publishSkill": "发布技能"
+      "title": "企业 AI 开发资产中心",
+      "subtitle": "面向产品、脚手架、微服务和质量治理的私有化 Agent Hub",
+      "searchPlaceholder": "搜索开发资产、业务域或技术栈...",
+      "exploreSkills": "浏览资产",
+      "publishSkill": "上传资产"
     },
     "features": {
       "secure": {
@@ -24,12 +24,12 @@
         "description": "企业级安全保护您的 AI 工作流"
       },
       "community": {
-        "title": "社区驱动",
-        "description": "与全球开发者分享和发现技能"
+        "title": "团队沉淀",
+        "description": "围绕产品、业务域和微服务能力持续沉淀可复用开发资产"
       },
       "integration": {
-        "title": "轻松集成",
-        "description": "无缝集成到您现有的工具中"
+        "title": "工程集成",
+        "description": "与 CLI、脚手架、初始化流程和开发规范无缝衔接"
       },
       "versionControl": {
         "title": "版本控制",
@@ -50,8 +50,8 @@
       "teams": "团队"
     },
     "whySkillHub": {
-      "title": "为什么选择 SkillHub",
-      "subtitle": "专为企业打造的私有化 Agent 技能管理平台"
+      "title": "为什么选择 Agent Hub",
+      "subtitle": "专为企业研发场景打造的私有化开发资产中心"
     },
     "badge": "企业级技能注册中心",
     "tagline": "发布、发现、管理",
@@ -99,25 +99,25 @@
     "quickStart": {
       "title": "快速开始",
       "subtitle": "Quick Start",
-      "description": "选择你的使用方式，复制说明后继续完成接入",
+      "description": "选择你的接入方式，让研发工程师或 Agent 直接开始使用企业资产目录",
       "tip": "💡 提示：访问技能详情页可获取带环境变量的一键复制安装命令",
       "tabs": {
         "agent": "我是 Agent",
-        "human": "我是 Human"
+        "human": "我是研发工程师"
       },
       "agent": {
-        "description": "发送提示词给你的 Agent，以设置SkillHub Registry",
-        "command": "阅读 https://www.example.com/registry/skill.md，并按照说明完成 SkillHub Skills Registry 的配置",
-        "commandTemplate": "阅读 {{url}}，并按照说明完成 SkillHub Skills Registry 的配置"
+        "description": "发送提示词给你的 Agent，使其通过 CLI 接管搜索、上传、分类和推荐",
+        "command": "阅读 https://www.example.com/registry/skill.md，并按照说明完成企业 Agent Hub CLI 的配置",
+        "commandTemplate": "阅读 {{url}}，并按照说明完成企业 Agent Hub CLI 的配置"
       },
       "human": {
-        "description": "使用CLI工具安装Skills",
-        "command": "npx clawhub search <keyword>"
+        "description": "使用企业 CLI 搜索和安装开发资产",
+        "command": "./bin/agenthub-cli search spring-boot --json"
       },
       "steps": {
         "configureEnv": {
           "title": "1. 配置环境变量",
-          "description": "设置 ClawHub CLI 连接到 SkillHub"
+          "description": "设置 agenthub-cli 连接到企业 Agent Hub"
         },
         "installSkills": {
           "title": "2. 安装技能",
@@ -137,10 +137,10 @@
     "description": "为开发者提供高效的技能管理、分发和协作平台",
     "browseSkills": "浏览技能",
     "publishSkill": "发布技能",
-    "popularTitle": "热门下载",
-    "popularDescription": "社区最受欢迎的技能",
-    "latestTitle": "最新发布",
-    "latestDescription": "刚刚发布的新技能",
+    "popularTitle": "高复用资产",
+    "popularDescription": "团队最常引用的开发能力",
+    "latestTitle": "最新沉淀",
+    "latestDescription": "最近更新的企业开发资产",
     "viewAll": "查看全部 →",
     "quickStart": {
       "title": "快速开始",
@@ -150,7 +150,7 @@
       "steps": {
         "configureEnv": {
           "title": "1. 配置环境变量",
-          "description": "设置 ClawHub CLI 连接到 SkillHub"
+          "description": "设置 agenthub-cli 连接到企业 Agent Hub"
         },
         "installSkills": {
           "title": "2. 安装技能",

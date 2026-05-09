@@ -97,6 +97,10 @@ async function runCleanupTaskWithTimeout(task: CleanupTask): Promise<void> {
   })
 }
 
+async function wait(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 function buildSkillPackageContent(suffix: string, options?: SeedSkillOptions) {
   const skillName = (options?.name || `e2e-skill-${suffix}`).slice(0, 48)
   const description = options?.description || 'E2E generated skill for real-request tests'
@@ -506,19 +510,37 @@ export class E2eTestDataBuilder {
   async publishSkill(namespaceSlug: string, options?: SeedSkillOptions): Promise<SeededSkill> {
     const unique = `${this.suffix}_${Math.random().toString(36).slice(2, 6)}`
     const zipBuffer = buildSkillPackageZipBuffer(unique, options)
+    let lastError: unknown
+    let result: SeededSkill | null = null
 
-    const result = await parseEnvelope<SeededSkill>(
-      await this.request.post(`/api/web/skills/${encodeURIComponent(namespaceSlug)}/publish`, {
-        multipart: {
-          file: {
-            name: 'sample-skill.zip',
-            mimeType: 'application/zip',
-            buffer: zipBuffer,
-          },
-          visibility: 'PUBLIC',
-        },
-      }),
-    )
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      try {
+        result = await parseEnvelope<SeededSkill>(
+          await this.request.post(`/api/web/skills/${encodeURIComponent(namespaceSlug)}/publish`, {
+            multipart: {
+              file: {
+                name: 'sample-skill.zip',
+                mimeType: 'application/zip',
+                buffer: zipBuffer,
+              },
+              visibility: 'PUBLIC',
+            },
+          }),
+        )
+        break
+      } catch (error) {
+        lastError = error
+        const failure = error as ApiFailure
+        if (failure.status !== 429) {
+          throw error
+        }
+        await wait(1_000 * (attempt + 1))
+      }
+    }
+
+    if (!result) {
+      throw lastError instanceof Error ? lastError : new Error('publishSkill failed after retries')
+    }
 
     this.cleanupTasks.push(async () => {
       await this.request.delete(`/api/web/skills/${encodeURIComponent(result.namespace)}/${encodeURIComponent(result.slug)}`)

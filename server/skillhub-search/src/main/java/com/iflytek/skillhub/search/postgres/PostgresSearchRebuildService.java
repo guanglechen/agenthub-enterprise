@@ -2,6 +2,7 @@ package com.iflytek.skillhub.search.postgres;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.iflytek.skillhub.domain.catalog.SkillCatalogProfileService;
 import com.iflytek.skillhub.domain.namespace.Namespace;
 import com.iflytek.skillhub.domain.namespace.NamespaceRepository;
 import com.iflytek.skillhub.domain.label.LabelDefinition;
@@ -50,6 +51,7 @@ public class PostgresSearchRebuildService implements SearchRebuildService {
     private final SearchIndexService searchIndexService;
     private final SearchTextTokenizer searchTextTokenizer;
     private final ObjectMapper objectMapper;
+    private final SkillCatalogProfileService skillCatalogProfileService;
 
     public PostgresSearchRebuildService(
             SkillRepository skillRepository,
@@ -57,6 +59,16 @@ public class PostgresSearchRebuildService implements SearchRebuildService {
             SkillVersionRepository skillVersionRepository,
             SearchIndexService searchIndexService,
             SearchTextTokenizer searchTextTokenizer) {
+        this(skillRepository, namespaceRepository, skillVersionRepository, searchIndexService, searchTextTokenizer, null);
+    }
+
+    public PostgresSearchRebuildService(
+            SkillRepository skillRepository,
+            NamespaceRepository namespaceRepository,
+            SkillVersionRepository skillVersionRepository,
+            SearchIndexService searchIndexService,
+            SearchTextTokenizer searchTextTokenizer,
+            SkillCatalogProfileService skillCatalogProfileService) {
         this(
                 skillRepository,
                 namespaceRepository,
@@ -65,7 +77,30 @@ public class PostgresSearchRebuildService implements SearchRebuildService {
                 null,
                 null,
                 searchIndexService,
-                searchTextTokenizer
+                searchTextTokenizer,
+                skillCatalogProfileService
+        );
+    }
+
+    public PostgresSearchRebuildService(
+            SkillRepository skillRepository,
+            NamespaceRepository namespaceRepository,
+            SkillVersionRepository skillVersionRepository,
+            LabelDefinitionRepository labelDefinitionRepository,
+            LabelTranslationRepository labelTranslationRepository,
+            SkillLabelRepository skillLabelRepository,
+            SearchIndexService searchIndexService,
+            SearchTextTokenizer searchTextTokenizer) {
+        this(
+                skillRepository,
+                namespaceRepository,
+                skillVersionRepository,
+                labelDefinitionRepository,
+                labelTranslationRepository,
+                skillLabelRepository,
+                searchIndexService,
+                searchTextTokenizer,
+                null
         );
     }
 
@@ -78,7 +113,8 @@ public class PostgresSearchRebuildService implements SearchRebuildService {
             LabelTranslationRepository labelTranslationRepository,
             SkillLabelRepository skillLabelRepository,
             SearchIndexService searchIndexService,
-            SearchTextTokenizer searchTextTokenizer) {
+            SearchTextTokenizer searchTextTokenizer,
+            SkillCatalogProfileService skillCatalogProfileService) {
         this.skillRepository = skillRepository;
         this.namespaceRepository = namespaceRepository;
         this.skillVersionRepository = skillVersionRepository;
@@ -88,6 +124,7 @@ public class PostgresSearchRebuildService implements SearchRebuildService {
         this.searchIndexService = searchIndexService;
         this.searchTextTokenizer = searchTextTokenizer;
         this.objectMapper = new ObjectMapper();
+        this.skillCatalogProfileService = skillCatalogProfileService;
     }
 
     @Override
@@ -130,6 +167,7 @@ public class PostgresSearchRebuildService implements SearchRebuildService {
                 .map(metadata -> metadata.get("frontmatter"))
                 .map(this::asMap)
                 .ifPresent(frontmatter -> appendFrontmatter(frontmatter, keywords, searchParts));
+        appendCatalogProfile(skill, keywords, searchParts);
         appendLabelKeywords(skill.getId(), keywords);
 
         return new SearchIndexPayload(
@@ -256,6 +294,27 @@ public class PostgresSearchRebuildService implements SearchRebuildService {
                 addKeyword(keywords, translation.getDisplayName());
             }
         }
+    }
+
+    private void appendCatalogProfile(Skill skill, Set<String> keywords, List<String> searchParts) {
+        if (skillCatalogProfileService == null) {
+            return;
+        }
+        SkillCatalogProfileService.CatalogProfileView profile = skillCatalogProfileService.resolveForSkill(skill);
+        addKeyword(keywords, profile.assetType());
+        addKeyword(keywords, profile.domain());
+        addKeyword(keywords, profile.stage());
+        addKeyword(keywords, profile.topology());
+        addKeyword(keywords, profile.ownerTeam());
+        addKeyword(keywords, profile.maintenanceMode());
+        profile.stack().forEach(keyword -> addKeyword(keywords, keyword));
+        profile.keywords().forEach(keyword -> addKeyword(keywords, keyword));
+        profile.relations().forEach(relation -> {
+            addPart(searchParts, relation.type());
+            addPart(searchParts, relation.target());
+            addPart(searchParts, relation.title());
+            addPart(searchParts, relation.note());
+        });
     }
 
     private void addKeyword(Set<String> keywords, String value) {

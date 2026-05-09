@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import YAML from 'yaml'
 import { UploadZone } from '@/features/publish/upload-zone'
 import {
   extractPrecheckWarnings,
@@ -21,14 +22,42 @@ import {
 } from '@/shared/ui/select'
 import { Label } from '@/shared/ui/label'
 import { Card } from '@/shared/ui/card'
-import { usePublishSkill } from '@/shared/hooks/use-skill-queries'
+import { usePublishSkill, useUpdateSkillCatalog } from '@/shared/hooks/use-skill-queries'
 import { useMyNamespaces } from '@/shared/hooks/use-namespace-queries'
 import { ConfirmDialog } from '@/shared/components/confirm-dialog'
 import { DashboardPageHeader } from '@/shared/components/dashboard-page-header'
 import { toast } from '@/shared/lib/toast'
 import { ApiError } from '@/api/client'
+import { ASSET_TYPE_OPTIONS, MAINTENANCE_MODE_OPTIONS, STAGE_OPTIONS, TOPOLOGY_OPTIONS } from '@/shared/lib/catalog'
+import { Input } from '@/shared/ui/input'
+import { Textarea } from '@/shared/ui/textarea'
 
 const EMPTY_NAMESPACE_VALUE = '__select_namespace__'
+const EMPTY_SELECT_VALUE = '__select__'
+
+type CatalogFormState = {
+  assetType: string
+  domain: string
+  stage: string
+  topology: string
+  stack: string
+  ownerTeam: string
+  keywords: string
+  maintenanceMode: string
+  relationsJson: string
+}
+
+const EMPTY_CATALOG_FORM: CatalogFormState = {
+  assetType: '',
+  domain: '',
+  stage: '',
+  topology: '',
+  stack: '',
+  ownerTeam: '',
+  keywords: '',
+  maintenanceMode: '',
+  relationsJson: '',
+}
 
 export function PublishPage() {
   const { t } = useTranslation()
@@ -40,9 +69,11 @@ export function PublishPage() {
   const [visibility, setVisibility] = useState<string>(prefill.visibility)
   const [warningDialogOpen, setWarningDialogOpen] = useState(false)
   const [precheckWarnings, setPrecheckWarnings] = useState<string[]>([])
+  const [catalogForm, setCatalogForm] = useState<CatalogFormState>(EMPTY_CATALOG_FORM)
 
   const { data: namespaces, isLoading: isLoadingNamespaces } = useMyNamespaces()
   const publishMutation = usePublishSkill()
+  const updateCatalogMutation = useUpdateSkillCatalog()
   const selectedNamespace = namespaces?.find((ns) => ns.slug === namespaceSlug)
   const namespaceOnlyLabel = selectedNamespace?.type === 'GLOBAL'
     ? t('publish.visibilityOptions.loggedInUsersOnly')
@@ -65,6 +96,59 @@ export function PublishPage() {
     setWarningDialogOpen(false)
   }
 
+  const parseCsv = (value: string) =>
+    value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+
+  const buildCatalogRequest = () => {
+    const relations = catalogForm.relationsJson.trim()
+      ? JSON.parse(catalogForm.relationsJson)
+      : []
+    return {
+      assetType: catalogForm.assetType || undefined,
+      domain: catalogForm.domain.trim() || undefined,
+      stage: catalogForm.stage || undefined,
+      topology: catalogForm.topology || undefined,
+      stack: parseCsv(catalogForm.stack),
+      ownerTeam: catalogForm.ownerTeam.trim() || undefined,
+      keywords: parseCsv(catalogForm.keywords),
+      maintenanceMode: catalogForm.maintenanceMode || undefined,
+      relations,
+    }
+  }
+
+  const hasCatalogInput = () => {
+    return Object.values(catalogForm).some((value) => value.trim().length > 0)
+  }
+
+  const handleCatalogImport = async (file: File | null) => {
+    if (!file) {
+      return
+    }
+    try {
+      const raw = await file.text()
+      const parsed = file.name.endsWith('.yaml') || file.name.endsWith('.yml')
+        ? YAML.parse(raw)
+        : JSON.parse(raw)
+      setCatalogForm({
+        assetType: parsed?.assetType ?? '',
+        domain: parsed?.domain ?? '',
+        stage: parsed?.stage ?? '',
+        topology: parsed?.topology ?? '',
+        stack: Array.isArray(parsed?.stack) ? parsed.stack.join(', ') : '',
+        ownerTeam: parsed?.ownerTeam ?? '',
+        keywords: Array.isArray(parsed?.keywords) ? parsed.keywords.join(', ') : '',
+        maintenanceMode: parsed?.maintenanceMode ?? '',
+        relationsJson: Array.isArray(parsed?.relations) ? JSON.stringify(parsed.relations, null, 2) : '',
+      })
+      toast.success('已导入目录元数据')
+    } catch (error) {
+      toast.error('导入失败', error instanceof Error ? error.message : '无法解析 catalog 文件')
+    }
+  }
+
   const publishSkill = async (confirmWarnings = false) => {
     if (!selectedFile || !namespaceSlug) {
       toast.error(t('publish.selectRequired'))
@@ -80,6 +164,17 @@ export function PublishPage() {
       })
       setPrecheckWarnings([])
       setWarningDialogOpen(false)
+      if (hasCatalogInput()) {
+        try {
+          await updateCatalogMutation.mutateAsync({
+            namespace: result.namespace,
+            slug: result.slug,
+            body: buildCatalogRequest(),
+          })
+        } catch (catalogError) {
+          toast.error('Skill 已上传，但目录元数据写入失败', catalogError instanceof Error ? catalogError.message : '')
+        }
+      }
       const skillLabel = `${result.namespace}/${result.slug}@${result.version}`
       if (result.status === 'PUBLISHED') {
         toast.success(
@@ -222,6 +317,119 @@ export function PublishPage() {
               </Button>
             </div>
           )}
+        </div>
+
+        <div className="space-y-4 rounded-2xl border border-border/60 bg-secondary/10 p-5">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <div className="text-sm font-semibold text-foreground">企业目录元数据</div>
+              <p className="mt-1 text-sm text-muted-foreground">可手工填写，也可导入 `catalog.json / catalog.yaml`。发布成功后会自动写入 Skill 目录画像。</p>
+            </div>
+            <label className="cursor-pointer rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-muted-foreground">
+              导入 catalog 文件
+              <input
+                type="file"
+                accept=".json,.yaml,.yml"
+                className="hidden"
+                onChange={(event) => handleCatalogImport(event.target.files?.[0] ?? null)}
+              />
+            </label>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>资产类型</Label>
+              <Select
+                value={normalizeSelectValue(catalogForm.assetType) ?? EMPTY_SELECT_VALUE}
+                onValueChange={(value) => setCatalogForm((current) => ({ ...current, assetType: value === EMPTY_SELECT_VALUE ? '' : value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={EMPTY_SELECT_VALUE}>未指定</SelectItem>
+                  {ASSET_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>业务域</Label>
+              <Input value={catalogForm.domain} onChange={(event) => setCatalogForm((current) => ({ ...current, domain: event.target.value }))} placeholder="order / payment" />
+            </div>
+            <div className="space-y-2">
+              <Label>适用阶段</Label>
+              <Select
+                value={normalizeSelectValue(catalogForm.stage) ?? EMPTY_SELECT_VALUE}
+                onValueChange={(value) => setCatalogForm((current) => ({ ...current, stage: value === EMPTY_SELECT_VALUE ? '' : value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={EMPTY_SELECT_VALUE}>未指定</SelectItem>
+                  {STAGE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>技术拓扑</Label>
+              <Select
+                value={normalizeSelectValue(catalogForm.topology) ?? EMPTY_SELECT_VALUE}
+                onValueChange={(value) => setCatalogForm((current) => ({ ...current, topology: value === EMPTY_SELECT_VALUE ? '' : value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={EMPTY_SELECT_VALUE}>未指定</SelectItem>
+                  {TOPOLOGY_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>技术栈</Label>
+              <Input value={catalogForm.stack} onChange={(event) => setCatalogForm((current) => ({ ...current, stack: event.target.value }))} placeholder="java21, spring-boot3, maven" />
+            </div>
+            <div className="space-y-2">
+              <Label>责任团队</Label>
+              <Input value={catalogForm.ownerTeam} onChange={(event) => setCatalogForm((current) => ({ ...current, ownerTeam: event.target.value }))} placeholder="platform-agent-team" />
+            </div>
+            <div className="space-y-2">
+              <Label>关键字</Label>
+              <Input value={catalogForm.keywords} onChange={(event) => setCatalogForm((current) => ({ ...current, keywords: event.target.value }))} placeholder="bootstrap, spring, contract-test" />
+            </div>
+            <div className="space-y-2">
+              <Label>维护模式</Label>
+              <Select
+                value={normalizeSelectValue(catalogForm.maintenanceMode) ?? EMPTY_SELECT_VALUE}
+                onValueChange={(value) => setCatalogForm((current) => ({ ...current, maintenanceMode: value === EMPTY_SELECT_VALUE ? '' : value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={EMPTY_SELECT_VALUE}>未指定</SelectItem>
+                  {MAINTENANCE_MODE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>关联关系 JSON</Label>
+            <Textarea
+              rows={6}
+              value={catalogForm.relationsJson}
+              onChange={(event) => setCatalogForm((current) => ({ ...current, relationsJson: event.target.value }))}
+              placeholder='[{"type":"recommendedWith","target":"@global/java-bootstrap","title":"Java 初始化脚手架"}]'
+            />
+          </div>
         </div>
 
         <Button

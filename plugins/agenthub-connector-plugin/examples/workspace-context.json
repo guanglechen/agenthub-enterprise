@@ -1,0 +1,20 @@
+{
+  "workspaceName": "payment-service",
+  "language": "java",
+  "framework": "spring-boot3",
+  "newProject": false,
+  "assetType": "microservice",
+  "domain": "payment",
+  "stage": "develop",
+  "topology": "bff",
+  "stack": [
+    "java21",
+    "spring-boot3",
+    "maven"
+  ],
+  "keywords": [
+    "gateway",
+    "checkout"
+  ],
+  "namespace": "team-space"
+}

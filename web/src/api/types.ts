@@ -172,6 +172,9 @@ export interface SkillSummary {
   publishedVersion?: SkillLifecycleVersion
   ownerPreviewVersion?: SkillLifecycleVersion
   resolutionMode?: string
+  catalogProfile?: CatalogProfile
+  relationCount?: number
+  recommendationScore?: number
 }
 
 export type LabelItem = Omit<components['schemas']['SkillLabelDto'], 'slug' | 'type' | 'displayName'> & {
@@ -235,6 +238,68 @@ export interface SkillDetail {
   ownerPreviewVersion?: SkillLifecycleVersion
   ownerPreviewReviewComment?: string
   resolutionMode?: string
+  catalogProfile?: CatalogProfile
+  relatedSkills?: RelatedSkill[]
+  recommendationReason?: string[]
+}
+
+export interface CatalogRelation {
+  type: string
+  target: string
+  title?: string
+  note?: string
+}
+
+export interface CatalogProfile {
+  assetType?: string
+  domain?: string
+  stage?: string
+  topology?: string
+  stack: string[]
+  ownerTeam?: string
+  keywords: string[]
+  maintenanceMode?: string
+  relations: CatalogRelation[]
+}
+
+export interface RelatedSkill {
+  type: string
+  target: string
+  title?: string
+  note?: string
+  resolved: boolean
+  skillId?: number
+  namespace?: string
+  slug?: string
+  displayName?: string
+  summary?: string
+  catalogProfile?: CatalogProfile
+}
+
+export interface RecommendationItem {
+  skillId: number
+  namespace: string
+  slug: string
+  displayName: string
+  summary?: string
+  downloadCount: number
+  starCount: number
+  updatedAt: string
+  catalogProfile?: CatalogProfile
+  score: number
+  reasons: string[]
+}
+
+export interface CatalogUpsertRequest extends CatalogProfile {}
+
+export interface RecommendationContextRequest {
+  assetType?: string
+  domain?: string
+  stage?: string
+  topology?: string
+  stack?: string[]
+  keywords?: string[]
+  namespace?: string
 }
 
 export interface SubmitPromotionRequest {
@@ -327,6 +392,11 @@ export interface SearchParams {
   q?: string
   namespace?: string
   label?: string
+  assetType?: string
+  domain?: string
+  stage?: string
+  topology?: string
+  stack?: string
   sort?: string
   page?: number
   size?: number

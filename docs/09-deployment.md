@@ -299,3 +299,20 @@ Flyway 仍是唯一 schema 变更入口：
 - 路径：`server/skillhub-app/src/main/resources/db/migration/`
 - 命名：`V{version}__{description}.sql`
 - 启动策略：应用容器启动时自动执行迁移
+
+## 13 企业内网私有化补充
+
+如果后续要从公司内网代码仓拉源码，由 Agent 辅助完成私有化部署，不建议直接依赖公网 GHCR。
+
+建议改为：
+
+- 外部仓库同步到公司内网 Git 镜像仓
+- 在内网构建 `server` / `web` / `scanner` 镜像
+- 推送到公司内网镜像仓
+- 使用 `compose.release.yml` 或 Kubernetes 在内网运行
+- 部署后再通过 `agenthub-cli` 和本地 Claude Code 插件接入
+
+详细步骤见：
+
+- [docs/22-enterprise-private-deployment-playbook.md](/Users/chenguangyue/Documents/code/github/iflytek/agenthub-enterprise/docs/22-enterprise-private-deployment-playbook.md:1)
+- [docs/21-local-claude-plugin-connector.md](/Users/chenguangyue/Documents/code/github/iflytek/agenthub-enterprise/docs/21-local-claude-plugin-connector.md:1)

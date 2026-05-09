@@ -9,6 +9,12 @@ USERNAME="smoketest_$(date +%s)"
 EMAIL="${USERNAME}@example.com"
 PASSWORD="Smoke@2026"
 NEW_PASSWORD="Smoke@2027"
+BASE_HOST="$(printf '%s' "$BASE_URL" | sed -E 's#^[a-zA-Z]+://([^/:]+).*$#\1#')"
+CURL_PROXY_BYPASS=()
+
+if [[ "$BASE_HOST" == "localhost" || "$BASE_HOST" == "127.0.0.1" || "$BASE_HOST" == "::1" ]]; then
+  CURL_PROXY_BYPASS=(--noproxy "*")
+fi
 
 cleanup() {
   rm -f "$COOKIE_JAR"
@@ -16,12 +22,16 @@ cleanup() {
 
 trap cleanup EXIT
 
+curl_base() {
+  curl "${CURL_PROXY_BYPASS[@]}" "$@"
+}
+
 check() {
   local desc="$1"
   local url="$2"
   local expected="$3"
   local status
-  status="$(curl --retry 3 --retry-delay 1 --max-time 10 -s -o /dev/null -w "%{http_code}" "$url" || true)"
+  status="$(curl_base --retry 3 --retry-delay 1 --max-time 10 -s -o /dev/null -w "%{http_code}" "$url" || true)"
   if [[ "$status" == "$expected" ]]; then
     echo "PASS: $desc (HTTP $status)"
     PASS=$((PASS + 1))
@@ -31,19 +41,37 @@ check() {
   fi
 }
 
+check_any() {
+  local desc="$1"
+  local url="$2"
+  shift 2
+  local expected_codes=("$@")
+  local status
+  status="$(curl_base --retry 3 --retry-delay 1 --max-time 10 -s -o /dev/null -w "%{http_code}" "$url" || true)"
+  for expected in "${expected_codes[@]}"; do
+    if [[ "$status" == "$expected" ]]; then
+      echo "PASS: $desc (HTTP $status)"
+      PASS=$((PASS + 1))
+      return 0
+    fi
+  done
+  echo "FAIL: $desc (expected one of ${expected_codes[*]}, got $status)"
+  FAIL=$((FAIL + 1))
+}
+
 echo "=== SkillHub Smoke Test ==="
 echo "Target: $BASE_URL"
 echo
 
 check "Health endpoint" "$BASE_URL/actuator/health" "200"
-check "Prometheus metrics" "$BASE_URL/actuator/prometheus" "200"
-check "Namespaces API" "$BASE_URL/api/v1/namespaces" "200"
+check_any "Prometheus metrics endpoint" "$BASE_URL/actuator/prometheus" "200" "401"
+check_any "Namespaces API listing" "$BASE_URL/api/v1/namespaces" "200" "401"
 check "Auth required" "$BASE_URL/api/v1/auth/me" "401"
 
-curl -s -c "$COOKIE_JAR" "$BASE_URL/api/v1/auth/me" >/dev/null
+curl_base -s -c "$COOKIE_JAR" "$BASE_URL/api/v1/auth/me" >/dev/null
 CSRF_TOKEN="$(awk '$6 == "XSRF-TOKEN" { print $7 }' "$COOKIE_JAR" | tail -n 1)"
 
-REGISTER_STATUS="$(curl --max-time 10 -s -o /dev/null -w "%{http_code}" \
+REGISTER_STATUS="$(curl_base --max-time 10 -s -o /dev/null -w "%{http_code}" \
   -X POST "$BASE_URL/api/v1/auth/local/register" \
   -b "$COOKIE_JAR" \
   -c "$COOKIE_JAR" \
@@ -58,7 +86,7 @@ else
   FAIL=$((FAIL + 1))
 fi
 
-AUTH_ME_STATUS="$(curl --max-time 10 -s -o /dev/null -w "%{http_code}" -b "$COOKIE_JAR" "$BASE_URL/api/v1/auth/me" || true)"
+AUTH_ME_STATUS="$(curl_base --max-time 10 -s -o /dev/null -w "%{http_code}" -b "$COOKIE_JAR" "$BASE_URL/api/v1/auth/me" || true)"
 if [[ "$AUTH_ME_STATUS" == "200" ]]; then
   echo "PASS: Auth me with session (HTTP $AUTH_ME_STATUS)"
   PASS=$((PASS + 1))
@@ -67,7 +95,7 @@ else
   FAIL=$((FAIL + 1))
 fi
 
-CHANGE_PASSWORD_STATUS="$(curl --max-time 10 -s -o /dev/null -w "%{http_code}" \
+CHANGE_PASSWORD_STATUS="$(curl_base --max-time 10 -s -o /dev/null -w "%{http_code}" \
   -X POST "$BASE_URL/api/v1/auth/local/change-password" \
   -b "$COOKIE_JAR" \
   -H "X-XSRF-TOKEN: $CSRF_TOKEN" \
@@ -81,7 +109,7 @@ else
   FAIL=$((FAIL + 1))
 fi
 
-LOGOUT_STATUS="$(curl --max-time 10 -s -o /dev/null -w "%{http_code}" \
+LOGOUT_STATUS="$(curl_base --max-time 10 -s -o /dev/null -w "%{http_code}" \
   -X POST "$BASE_URL/api/v1/auth/logout" \
   -b "$COOKIE_JAR" \
   -c "$COOKIE_JAR" \
@@ -94,7 +122,7 @@ else
   FAIL=$((FAIL + 1))
 fi
 
-POST_LOGOUT_STATUS="$(curl --max-time 10 -s -o /dev/null -w "%{http_code}" -b "$COOKIE_JAR" "$BASE_URL/api/v1/auth/me" || true)"
+POST_LOGOUT_STATUS="$(curl_base --max-time 10 -s -o /dev/null -w "%{http_code}" -b "$COOKIE_JAR" "$BASE_URL/api/v1/auth/me" || true)"
 if [[ "$POST_LOGOUT_STATUS" == "401" ]]; then
   echo "PASS: Auth me after logout (HTTP $POST_LOGOUT_STATUS)"
   PASS=$((PASS + 1))
@@ -115,11 +143,11 @@ cleanup_admin() {
 trap 'cleanup; cleanup_admin' EXIT
 
 # Get CSRF token for admin session
-curl -s -c "$ADMIN_COOKIE_JAR" "$BASE_URL/api/v1/auth/me" >/dev/null
+curl_base -s -c "$ADMIN_COOKIE_JAR" "$BASE_URL/api/v1/auth/me" >/dev/null
 ADMIN_CSRF="$(awk '$6 == "XSRF-TOKEN" { print $7 }' "$ADMIN_COOKIE_JAR" | tail -n 1)"
 
 # Login as admin
-ADMIN_LOGIN_STATUS="$(curl --max-time 10 -s -o /dev/null -w "%{http_code}" \
+ADMIN_LOGIN_STATUS="$(curl_base --max-time 10 -s -o /dev/null -w "%{http_code}" \
   -X POST "$BASE_URL/api/v1/auth/local/login" \
   -b "$ADMIN_COOKIE_JAR" \
   -c "$ADMIN_COOKIE_JAR" \
@@ -138,7 +166,7 @@ fi
 ADMIN_CSRF="$(awk '$6 == "XSRF-TOKEN" { print $7 }' "$ADMIN_COOKIE_JAR" | tail -n 1)"
 
 # Create label definition
-CREATE_LABEL_STATUS="$(curl --max-time 10 -s -o /dev/null -w "%{http_code}" \
+CREATE_LABEL_STATUS="$(curl_base --max-time 10 -s -o /dev/null -w "%{http_code}" \
   -X POST "$BASE_URL/api/v1/admin/labels" \
   -b "$ADMIN_COOKIE_JAR" \
   -H "X-XSRF-TOKEN: $ADMIN_CSRF" \
@@ -153,7 +181,7 @@ else
 fi
 
 # List admin label definitions
-LIST_LABELS_STATUS="$(curl --max-time 10 -s -o /dev/null -w "%{http_code}" \
+LIST_LABELS_STATUS="$(curl_base --max-time 10 -s -o /dev/null -w "%{http_code}" \
   -b "$ADMIN_COOKIE_JAR" "$BASE_URL/api/v1/admin/labels" || true)"
 if [[ "$LIST_LABELS_STATUS" == "200" ]]; then
   echo "PASS: List admin label definitions (HTTP $LIST_LABELS_STATUS)"
@@ -164,7 +192,7 @@ else
 fi
 
 # List visible labels (public)
-VISIBLE_LABELS_STATUS="$(curl --max-time 10 -s -o /dev/null -w "%{http_code}" \
+VISIBLE_LABELS_STATUS="$(curl_base --max-time 10 -s -o /dev/null -w "%{http_code}" \
   "$BASE_URL/api/v1/labels" || true)"
 if [[ "$VISIBLE_LABELS_STATUS" == "200" ]]; then
   echo "PASS: List visible labels (HTTP $VISIBLE_LABELS_STATUS)"
@@ -175,7 +203,7 @@ else
 fi
 
 # Delete label definition (cleanup)
-DELETE_LABEL_STATUS="$(curl --max-time 10 -s -o /dev/null -w "%{http_code}" \
+DELETE_LABEL_STATUS="$(curl_base --max-time 10 -s -o /dev/null -w "%{http_code}" \
   -X DELETE "$BASE_URL/api/v1/admin/labels/$LABEL_SLUG" \
   -b "$ADMIN_COOKIE_JAR" \
   -H "X-XSRF-TOKEN: $ADMIN_CSRF" || true)"

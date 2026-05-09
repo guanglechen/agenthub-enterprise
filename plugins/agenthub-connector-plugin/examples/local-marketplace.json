@@ -1,0 +1,20 @@
+{
+  "name": "agenthub-local-marketplace",
+  "interface": {
+    "displayName": "AgentHub Local Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "agenthub-connector-plugin",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agenthub-connector-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

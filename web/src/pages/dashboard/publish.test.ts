@@ -50,6 +50,7 @@ vi.mock('@/shared/ui/card', () => ({
 
 vi.mock('@/shared/hooks/use-skill-queries', () => ({
   usePublishSkill: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUpdateSkillCatalog: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
 vi.mock('@/shared/hooks/use-namespace-queries', () => ({

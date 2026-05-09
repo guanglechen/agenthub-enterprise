@@ -19,6 +19,26 @@ export function buildSkillSearchUrl(params: SearchParams) {
     queryParams.append('label', params.label)
   }
 
+  if (params.assetType) {
+    queryParams.append('assetType', params.assetType)
+  }
+
+  if (params.domain) {
+    queryParams.append('domain', params.domain)
+  }
+
+  if (params.stage) {
+    queryParams.append('stage', params.stage)
+  }
+
+  if (params.topology) {
+    queryParams.append('topology', params.topology)
+  }
+
+  if (params.stack) {
+    queryParams.append('stack', params.stack)
+  }
+
   if (params.sort) {
     queryParams.append('sort', params.sort)
   }

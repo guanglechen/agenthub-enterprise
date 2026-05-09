@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  * application service and visibility scope.
  */
 @RestController
-@RequestMapping({"/api/web/skills"})
+@RequestMapping({"/api/v1/search/skills", "/api/web/skills"})
 public class SkillSearchController extends BaseApiController {
     private static final Pattern NON_NEGATIVE_INTEGER = Pattern.compile("\\d+");
     private static final String DEFAULT_SORT = "newest";
@@ -40,6 +40,11 @@ public class SkillSearchController extends BaseApiController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String namespace,
             @RequestParam(name = "label", required = false) java.util.List<String> labels,
+            @RequestParam(required = false) String assetType,
+            @RequestParam(required = false) String domain,
+            @RequestParam(required = false) String stage,
+            @RequestParam(required = false) String topology,
+            @RequestParam(required = false) String stack,
             @Parameter(schema = @Schema(defaultValue = DEFAULT_SORT))
             @RequestParam(required = false) String sort,
             @Parameter(schema = @Schema(type = "integer", defaultValue = "0", minimum = "0"))
@@ -56,6 +61,11 @@ public class SkillSearchController extends BaseApiController {
                 parseNonNegativeInt(page, DEFAULT_PAGE),
                 parsePositiveInt(size, DEFAULT_SIZE),
                 labels,
+                assetType,
+                domain,
+                stage,
+                topology,
+                stack,
                 userId,
                 userNsRoles
         );

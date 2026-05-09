@@ -8,6 +8,7 @@ import { EmptyState } from '@/shared/components/empty-state'
 import { Pagination } from '@/shared/components/pagination'
 import { useSearchSkills } from '@/shared/hooks/use-skill-queries'
 import { useNamespaceDetail } from '@/shared/hooks/use-namespace-queries'
+import { ASSET_TYPE_OPTIONS, getCatalogOptionLabel } from '@/shared/lib/catalog'
 
 const PAGE_SIZE = 20
 
@@ -33,6 +34,11 @@ export function NamespacePage() {
   })
 
   const totalPages = skillsData ? Math.max(Math.ceil(skillsData.total / skillsData.size), 1) : 1
+  const assetTypeCounts = skillsData?.items.reduce<Record<string, number>>((acc, skill) => {
+    const assetType = skill.catalogProfile?.assetType || 'uncategorized'
+    acc[assetType] = (acc[assetType] || 0) + 1
+    return acc
+  }, {}) ?? {}
 
   const handleSkillClick = (slug: string) => {
     navigate({ to: `/space/${namespace}/${encodeURIComponent(slug)}` })
@@ -56,7 +62,21 @@ export function NamespacePage() {
       <NamespaceHeader namespace={namespaceData} />
 
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold font-heading">{t('namespace.skillList')}</h2>
+        <div className="space-y-3">
+          <h2 className="text-2xl font-bold font-heading">团队能力目录</h2>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(assetTypeCounts).map(([assetType, count]) => (
+              <span
+                key={assetType}
+                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600"
+              >
+                {assetType === 'uncategorized'
+                  ? `存量资产 ${count}`
+                  : `${getCatalogOptionLabel(ASSET_TYPE_OPTIONS, assetType) ?? assetType} ${count}`}
+              </span>
+            ))}
+          </div>
+        </div>
         {isLoadingSkills ? (
           <SkeletonList count={6} />
         ) : skillsData && skillsData.items.length > 0 ? (

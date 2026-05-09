@@ -8,6 +8,7 @@ import com.iflytek.skillhub.domain.skill.SkillFile;
 import com.iflytek.skillhub.domain.skill.SkillVersion;
 import com.iflytek.skillhub.domain.skill.service.SkillDownloadService;
 import com.iflytek.skillhub.domain.skill.service.SkillQueryService;
+import com.iflytek.skillhub.service.SkillCatalogAppService;
 import com.iflytek.skillhub.service.SkillLabelAppService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,9 @@ class SkillControllerTest {
 
     @MockBean
     private SkillLabelAppService skillLabelAppService;
+
+    @MockBean
+    private SkillCatalogAppService skillCatalogAppService;
 
     @Test
     void getVersionDetailShouldReturnMetadataFields() throws Exception {
@@ -146,6 +150,10 @@ class SkillControllerTest {
 
     @Test
     void getSkillDetailShouldExposePendingPreviewFlags() throws Exception {
+        when(skillCatalogAppService.getCatalog(eq("team"), eq("demo"), eq((String) null), eq(Map.<Long, NamespaceRole>of())))
+                .thenReturn(null);
+        when(skillCatalogAppService.getRelatedSkills(eq("team"), eq("demo"), eq((String) null), eq(Map.<Long, NamespaceRole>of())))
+                .thenReturn(List.of());
         when(skillQueryService.getSkillDetail(
                 eq("team"),
                 eq("demo"),

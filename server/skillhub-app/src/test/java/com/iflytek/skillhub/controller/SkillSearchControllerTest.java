@@ -43,6 +43,11 @@ class SkillSearchControllerTest {
                 eq(0),
                 eq(20),
                 eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
                 any(),
                 any()))
                 .thenReturn(new SkillSearchAppService.SearchResponse(List.of(), 0, 0, 20));
@@ -59,6 +64,31 @@ class SkillSearchControllerTest {
     }
 
     @Test
+    void searchShouldAlsoServeDedicatedApiSearchRoute() throws Exception {
+        when(skillSearchAppService.search(
+                eq("review"),
+                eq(null),
+                eq("newest"),
+                eq(0),
+                eq(20),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                any(),
+                any()))
+                .thenReturn(new SkillSearchAppService.SearchResponse(List.of(), 0, 0, 20));
+
+        mockMvc.perform(get("/api/v1/search/skills")
+                        .param("q", "review"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.items").isArray());
+    }
+
+    @Test
     void searchShouldPassExplicitSortPageAndSize() throws Exception {
         when(skillSearchAppService.search(
                 eq(null),
@@ -66,6 +96,11 @@ class SkillSearchControllerTest {
                 eq("newest"),
                 eq(0),
                 eq(12),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
                 eq(null),
                 any(),
                 any()))
@@ -89,6 +124,11 @@ class SkillSearchControllerTest {
                 eq(0),
                 eq(20),
                 eq(List.of("code-generation", "official")),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
                 any(),
                 any()))
                 .thenReturn(new SkillSearchAppService.SearchResponse(List.of(), 0, 0, 20));
@@ -109,6 +149,11 @@ class SkillSearchControllerTest {
                 eq("newest"),
                 eq(0),
                 eq(20),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
                 eq(null),
                 any(),
                 any()))
@@ -132,6 +177,11 @@ class SkillSearchControllerTest {
                 eq(0),
                 eq(20),
                 eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
                 any(),
                 any()))
                 .thenReturn(new SkillSearchAppService.SearchResponse(List.of(), 0, 0, 20));
@@ -142,5 +192,35 @@ class SkillSearchControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.page").value(0))
                 .andExpect(jsonPath("$.data.size").value(20));
+    }
+
+    @Test
+    void searchShouldPassCatalogFilters() throws Exception {
+        when(skillSearchAppService.search(
+                eq("order"),
+                eq(null),
+                eq("recommended"),
+                eq(0),
+                eq(20),
+                eq(null),
+                eq("microservice"),
+                eq("payment"),
+                eq("develop"),
+                eq("bff"),
+                eq("spring-boot3"),
+                any(),
+                any()))
+                .thenReturn(new SkillSearchAppService.SearchResponse(List.of(), 0, 0, 20));
+
+        mockMvc.perform(get("/api/web/skills")
+                        .param("q", "order")
+                        .param("assetType", "microservice")
+                        .param("domain", "payment")
+                        .param("stage", "develop")
+                        .param("topology", "bff")
+                        .param("stack", "spring-boot3")
+                        .param("sort", "recommended"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items").isArray());
     }
 }

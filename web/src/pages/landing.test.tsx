@@ -17,6 +17,8 @@ vi.mock('react-i18next', async () => {
 
 vi.mock('lucide-react', () => ({
   PackageOpen: () => null,
+  Boxes: () => null,
+  Workflow: () => null,
   Terminal: () => null,
   Shield: () => null,
   Users: () => null,
@@ -67,7 +69,7 @@ describe('LandingPage', () => {
   it('renders the brand name in the hero section', () => {
     const html = renderToStaticMarkup(<LandingPage />)
 
-    expect(html).toContain('SkillHub')
+    expect(html).toContain('AgentHub')
     expect(html).toContain('landing.hero.title')
   })
 })
