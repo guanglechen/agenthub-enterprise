@@ -2,6 +2,12 @@
 
 set -eu
 
+SCRIPT_PATH="$0"
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$SCRIPT_PATH")" && pwd)
+REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." 2>/dev/null && pwd || printf '')
+LOCAL_COMPOSE_SOURCE="${REPO_ROOT}/compose.release.yml"
+LOCAL_ENV_SOURCE="${REPO_ROOT}/.env.release.example"
+
 COMMAND="up"
 if [ "$#" -gt 0 ] && [ "${1#-}" = "$1" ]; then
   COMMAND="$1"
@@ -120,7 +126,7 @@ if [ "$USE_ALIYUN" = "true" ]; then
   SKILLHUB_RAW_BASE="${SKILLHUB_RAW_BASE:-https://imageless.oss-cn-beijing.aliyuncs.com}"
   echo "Using Aliyun OSS for runtime files: $SKILLHUB_RAW_BASE"
 else
-  SKILLHUB_RAW_BASE="${SKILLHUB_RAW_BASE:-https://raw.githubusercontent.com/iflytek/skillhub/$SKILLHUB_REF}"
+  SKILLHUB_RAW_BASE="${SKILLHUB_RAW_BASE:-https://raw.githubusercontent.com/guanglechen/agenthub-enterprise/$SKILLHUB_REF}"
   echo "Using GitHub raw for runtime files: $SKILLHUB_RAW_BASE"
 fi
 COMPOSE_FILE="$SKILLHUB_HOME/compose.release.yml"
@@ -227,8 +233,14 @@ SQL
 
 prepare_runtime_files() {
   mkdir -p "$SKILLHUB_HOME"
-  download_file "$SKILLHUB_RAW_BASE/compose.release.yml" "$COMPOSE_FILE"
-  download_file "$SKILLHUB_RAW_BASE/.env.release.example" "$ENV_EXAMPLE_FILE"
+  if [ -f "$LOCAL_COMPOSE_SOURCE" ] && [ -f "$LOCAL_ENV_SOURCE" ]; then
+    echo "Using local runtime files from $REPO_ROOT"
+    cp "$LOCAL_COMPOSE_SOURCE" "$COMPOSE_FILE"
+    cp "$LOCAL_ENV_SOURCE" "$ENV_EXAMPLE_FILE"
+  else
+    download_file "$SKILLHUB_RAW_BASE/compose.release.yml" "$COMPOSE_FILE"
+    download_file "$SKILLHUB_RAW_BASE/.env.release.example" "$ENV_EXAMPLE_FILE"
+  fi
 
   if [ ! -f "$ENV_FILE" ]; then
     cp "$ENV_EXAMPLE_FILE" "$ENV_FILE"
@@ -300,9 +312,12 @@ case "$COMMAND" in
       run_compose up -d
     fi
     PUBLIC_URL="${SKILLHUB_PUBLIC_BASE_URL_VALUE:-http://localhost}"
-    HOME_ARG=""
+    STOP_HINT="curl -fsSL $SKILLHUB_RAW_BASE/scripts/runtime.sh | sh -s --"
+    if [ -f "$SCRIPT_DIR/runtime.sh" ]; then
+      STOP_HINT="sh $SCRIPT_DIR/runtime.sh"
+    fi
     if [ "$SKILLHUB_HOME" != "$SKILLHUB_HOME_DEFAULT" ]; then
-      HOME_ARG=" --home $SKILLHUB_HOME"
+      STOP_HINT="$STOP_HINT --home $SKILLHUB_HOME"
     fi
     cat <<EOF
 SkillHub runtime started.
@@ -310,7 +325,7 @@ Web UI: $PUBLIC_URL
 Backend API: http://localhost:8080
 Runtime dir: $SKILLHUB_HOME
 Stop with:
-  curl -fsSL $SKILLHUB_RAW_BASE/scripts/runtime.sh | sh -s -- down$HOME_ARG
+  $STOP_HINT down
 EOF
     ;;
   down)

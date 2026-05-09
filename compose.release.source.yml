@@ -1,0 +1,15 @@
+services:
+  skill-scanner:
+    build:
+      context: ./scanner
+      dockerfile: Dockerfile
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile

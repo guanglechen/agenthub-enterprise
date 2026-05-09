@@ -8,8 +8,8 @@
 
 [![文档](https://img.shields.io/badge/docs-zread.ai-4A90E2?logo=gitbook&logoColor=white)](https://zread.ai/iflytek/skillhub)
 [![许可证](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
-[![构建](https://github.com/iflytek/skillhub/actions/workflows/publish-images.yml/badge.svg)](https://github.com/iflytek/skillhub/actions/workflows/publish-images.yml)
-[![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ED?logo=docker&logoColor=white)](https://ghcr.io/iflytek/skillhub)
+[![构建](https://github.com/guanglechen/agenthub-enterprise/actions/workflows/publish-images.yml/badge.svg)](https://github.com/guanglechen/agenthub-enterprise/actions/workflows/publish-images.yml)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ED?logo=docker&logoColor=white)](https://ghcr.io/guanglechen)
 [![Java](https://img.shields.io/badge/java-21-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
 [![React](https://img.shields.io/badge/react-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
 
@@ -51,15 +51,15 @@ AgentHub Enterprise 是一个面向企业研发场景的私有化开发资产中
 
 ```bash
 rm -rf /tmp/skillhub-runtime
-curl -fsSL https://imageless.oss-cn-beijing.aliyuncs.com/runtime.sh | sh -s -- up
+curl -fsSL https://raw.githubusercontent.com/guanglechen/agenthub-enterprise/main/scripts/runtime.sh | sh -s -- up
 ```
 
-默认命令会拉取 `latest` 稳定版镜像；如果你想跟随 `main` 的最新构建，请显式传 `--version edge`。
+默认命令现在会拉取这个私有仓库 `main` 对应的 `edge` 镜像；如果你要严格固定版本，请显式传 `--version vX.Y.Z`。
 
 **配置公网访问地址（生产环境推荐）：**
 
 ```bash
-curl -fsSL https://imageless.oss-cn-beijing.aliyuncs.com/runtime.sh | sh -s -- up --public-url https://skillhub.your-company.com
+curl -fsSL https://raw.githubusercontent.com/guanglechen/agenthub-enterprise/main/scripts/runtime.sh | sh -s -- up --public-url https://skillhub.your-company.com
 ```
 
 `--public-url` 参数用于设置 SkillHub 实例的公网访问地址。配置后：
@@ -70,7 +70,7 @@ curl -fsSL https://imageless.oss-cn-beijing.aliyuncs.com/runtime.sh | sh -s -- u
 **国内用户（阿里云镜像）：**
 
 ```bash
-curl -fsSL https://imageless.oss-cn-beijing.aliyuncs.com/runtime.sh | sh -s -- up --aliyun --public-url https://skillhub.your-company.com --version latest
+curl -fsSL https://raw.githubusercontent.com/guanglechen/agenthub-enterprise/main/scripts/runtime.sh | sh -s -- up --aliyun --public-url https://skillhub.your-company.com --version edge
 ```
 
 如果部署遇到问题，请清除现有的运行时目录并重试。
@@ -122,8 +122,8 @@ curl -fsSL https://imageless.oss-cn-beijing.aliyuncs.com/runtime.sh | sh -s -- u
 
 ```bash
 # 克隆仓库
-git clone https://github.com/iflytek/skillhub.git
-cd skillhub
+git clone https://github.com/guanglechen/agenthub-enterprise.git
+cd agenthub-enterprise
 
 # 启动完整的本地开发栈（后端 + 前端 + 依赖）
 make dev-all
@@ -154,7 +154,7 @@ make generate-api           # 重新生成 OpenAPI 类型
 ### 项目结构
 
 ```
-skillhub/
+agenthub-enterprise/
 ├── server/                 # 后端（Java/Spring Boot）
 │   ├── skillhub-app/      # 主应用程序
 │   ├── skillhub-domain/   # 核心业务逻辑
@@ -177,10 +177,10 @@ skillhub/
 
 ```bash
 # 默认（GHCR 镜像）
-curl -fsSL https://imageless.oss-cn-beijing.aliyuncs.com/runtime.sh | sh -s -- up --public-url https://skillhub.your-company.com
+curl -fsSL https://raw.githubusercontent.com/guanglechen/agenthub-enterprise/main/scripts/runtime.sh | sh -s -- up --public-url https://skillhub.your-company.com
 
 # 阿里云镜像（国内推荐）
-curl -fsSL https://imageless.oss-cn-beijing.aliyuncs.com/runtime.sh | sh -s -- up --aliyun --public-url https://skillhub.your-company.com --version latest
+curl -fsSL https://raw.githubusercontent.com/guanglechen/agenthub-enterprise/main/scripts/runtime.sh | sh -s -- up --aliyun --public-url https://skillhub.your-company.com --version edge
 ```
 
 ### 配置参数说明
@@ -194,6 +194,12 @@ curl -fsSL https://imageless.oss-cn-beijing.aliyuncs.com/runtime.sh | sh -s -- u
 | `--no-scanner` | 禁用安全扫描服务 | `--no-scanner` |
 
 > **重要**：生产环境请务必配置 `--public-url`，确保 CLI 安装命令和 Agent 设置指引显示正确的地址。
+
+如果是直接 clone 当前仓库、希望部署“当前源码构建出来的镜像”而不是 GHCR 已发布镜像，使用：
+
+```bash
+docker compose --env-file .env.release -f compose.release.yml -f compose.release.source.yml up -d --build
+```
 
 ### 使用 Kubernetes
 

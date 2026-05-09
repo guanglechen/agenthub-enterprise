@@ -43,6 +43,7 @@ AgentHub Enterprise
 - 内网环境通常不能直接访问 `ghcr.io`
 - Maven、pnpm、Docker base image 都需要代理或镜像源
 - 后续你要让 Agent 在公司内网复用这套平台，源码和镜像都必须可控
+- GitHub 仓库本身不存放二进制 Docker 镜像；镜像要么来自 GHCR/企业镜像仓，要么由当前仓库源码现场构建
 
 ## 2. 交付物分层
 
@@ -167,6 +168,8 @@ docker push registry.company.local/agenthub/scanner:0.1.0
 - `SKILLHUB_STORAGE_PROVIDER`
 - `SKILLHUB_STORAGE_S3_*`
 - `BOOTSTRAP_ADMIN_*`
+- `SKILLHUB_AUTH_OPEN_ACCESS_*`
+- `SKILLHUB_WEB_AUTH_OPEN_ACCESS_*`
 
 #### 步骤 5：部署
 
@@ -174,6 +177,12 @@ docker push registry.company.local/agenthub/scanner:0.1.0
 cp .env.release.example .env.intranet.release
 make validate-release-config
 docker compose --env-file .env.intranet.release -f compose.release.yml up -d
+```
+
+如果需要“从当前仓库源码构建镜像后再部署”，使用：
+
+```bash
+docker compose --env-file .env.intranet.release -f compose.release.yml -f compose.release.source.yml up -d --build
 ```
 
 #### 步骤 6：验收

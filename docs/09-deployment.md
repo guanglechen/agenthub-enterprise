@@ -9,6 +9,8 @@
   - `docker-compose.yml` 只负责 PostgreSQL、Redis、MinIO
 - 单机交付环境：`docker compose --env-file .env.release -f compose.release.yml up -d`
   - 前端和后端都运行在容器内
+- 当前源码镜像交付：`docker compose --env-file .env.release -f compose.release.yml -f compose.release.source.yml up -d --build`
+  - 适合“从这个 GitHub 仓库直接构建并部署当前代码”场景
 - 使用 GitHub Actions 发布到 GHCR 的镜像
 - 默认发布 `linux/amd64` 与 `linux/arm64` 多架构镜像
   - PostgreSQL、Redis 与应用容器一起通过 Compose 启动
@@ -116,7 +118,10 @@ docker compose --env-file .env.release -f compose.release.yml up -d
   - Web 和后端都支持运行时环境变量注入，不需要为每个环境重建镜像
 - `.env.release.example`
   - 运行时变量模板
-  - 包含镜像名、镜像版本、端口、数据库凭证、外部 OSS、站点公网地址和首登管理员参数
+  - 包含镜像名、镜像版本、端口、数据库凭证、外部 OSS、站点公网地址和 open-access 默认参数
+- `compose.release.source.yml`
+  - 为 `server` / `web` / `skill-scanner` 增加本地 `build` 上下文
+  - 适合直接基于当前仓库源码构建镜像后再部署
 - `scripts/validate-release-config.sh`
   - 在启动前校验 `.env.release`
   - 可提前拦截占位值、URL 格式错误、缺失的 OSS 凭据、危险的明文默认值
@@ -124,7 +129,7 @@ docker compose --env-file .env.release -f compose.release.yml up -d
 ### 5.3 镜像标签约定
 
 - `edge`
-  - `main` 分支最新构建
+  - 当前私有仓库 `main` 分支最新构建
   - 用于内部持续验证
 - `vX.Y.Z`
   - 对应 Git tag
@@ -134,7 +139,7 @@ docker compose --env-file .env.release -f compose.release.yml up -d
 
 推荐：
 
-- 默认快速启动：`SKILLHUB_VERSION=latest`
+- 默认快速启动：`SKILLHUB_VERSION=edge`
 - 团队内部试用：`SKILLHUB_VERSION=edge`
 - 对外演示或严格可复现环境：固定为某个 `vX.Y.Z`
 
@@ -144,6 +149,7 @@ docker compose --env-file .env.release -f compose.release.yml up -d
 
 触发条件：
 
+- `push main`
 - `release.published`
 - 手动 `workflow_dispatch`
 
@@ -153,8 +159,9 @@ docker compose --env-file .env.release -f compose.release.yml up -d
 2. 登录 GHCR
 3. 分别构建 `server/Dockerfile` 与 `web/Dockerfile`
 4. 推送镜像：
-   - `ghcr.io/iflytek/skillhub-server`
-   - `ghcr.io/iflytek/skillhub-web`
+   - `ghcr.io/<repo-owner>/skillhub-server`
+   - `ghcr.io/<repo-owner>/skillhub-web`
+   - `ghcr.io/<repo-owner>/skillhub-scanner`
 5. 写入 `edge` / `vX.Y.Z` / `latest` / `sha-*` 标签
 6. 同时发布 `linux/amd64` 与 `linux/arm64` manifest，避免 Apple Silicon / ARM 主机依赖模拟层
 
@@ -162,6 +169,9 @@ docker compose --env-file .env.release -f compose.release.yml up -d
 
 前端运行时配置通过 `web/runtime-config.js.template` 注入。与认证兼容层相关的新变量如下：
 
+- `SKILLHUB_WEB_AUTH_OPEN_ACCESS_ENABLED`
+  - 是否让前端直接按免认证开放模式运行
+  - 当前企业私有化默认值为 `true`
 - `SKILLHUB_WEB_AUTH_DIRECT_ENABLED`
   - 是否在前端打开账号密码兼容接入层
   - 默认应为 `false`
@@ -178,6 +188,7 @@ docker compose --env-file .env.release -f compose.release.yml up -d
 
 注意：
 
+- 后端的 `SKILLHUB_AUTH_OPEN_ACCESS_ENABLED=true` 时，前端也应同步设置 `SKILLHUB_WEB_AUTH_OPEN_ACCESS_ENABLED=true`
 - 前端密码兼容层打开之前，后端仍必须同步打开 `skillhub.auth.direct.enabled=true`
 - 前端开关打开之前，后端仍必须同步打开 `skillhub.auth.session-bootstrap.enabled=true`
 - 前后端任一侧未开启，都不会破坏原有登录方式；只会使该兼容入口不可用或不显示
@@ -258,6 +269,7 @@ override 或部署平台环境变量把上述 `SPRING_SECURITY_*` 变量注入 `
    - 运行 `docker compose --env-file .env.release -f compose.release.yml up -d`
    - 检查 `docker compose --env-file .env.release -f compose.release.yml ps`
    - 检查 `curl -i http://127.0.0.1:8080/actuator/health`
+   - 如果要直接部署当前仓库代码而不是拉 GHCR 镜像，改用 `docker compose --env-file .env.release -f compose.release.yml -f compose.release.source.yml up -d --build`
 5. 首登收尾
    - 仅在启用了 `BOOTSTRAP_ADMIN_ENABLED=true` 时，使用 `BOOTSTRAP_ADMIN_USERNAME` / `BOOTSTRAP_ADMIN_PASSWORD` 登录
    - 立即修改管理员密码

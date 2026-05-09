@@ -106,13 +106,18 @@ reject_values BOOTSTRAP_ADMIN_PASSWORD "replace-this-admin-password" "ChangeMe!2
 if [ "${BOOTSTRAP_ADMIN_ENABLED:-false}" = "true" ]; then
   require_non_empty BOOTSTRAP_ADMIN_PASSWORD
 fi
-reject_values SKILLHUB_STORAGE_S3_ACCESS_KEY "replace-me"
-reject_values SKILLHUB_STORAGE_S3_SECRET_KEY "replace-me"
 
 validate_boolean SESSION_COOKIE_SECURE
 validate_boolean BOOTSTRAP_ADMIN_ENABLED
 validate_boolean SKILLHUB_STORAGE_S3_FORCE_PATH_STYLE
 validate_boolean SKILLHUB_STORAGE_S3_AUTO_CREATE_BUCKET
+validate_boolean SKILLHUB_AUTH_OPEN_ACCESS_ENABLED
+validate_boolean SKILLHUB_AUTH_DIRECT_ENABLED
+validate_boolean SKILLHUB_AUTH_SESSION_BOOTSTRAP_ENABLED
+validate_boolean SKILLHUB_WEB_AUTH_OPEN_ACCESS_ENABLED
+validate_boolean SKILLHUB_WEB_AUTH_DIRECT_ENABLED
+validate_boolean SKILLHUB_WEB_AUTH_SESSION_BOOTSTRAP_ENABLED
+validate_boolean SKILLHUB_WEB_AUTH_SESSION_BOOTSTRAP_AUTO
 
 validate_port POSTGRES_PORT
 validate_port REDIS_PORT
@@ -131,6 +136,8 @@ case "$storage_provider" in
     require_non_empty SKILLHUB_STORAGE_S3_ACCESS_KEY
     require_non_empty SKILLHUB_STORAGE_S3_SECRET_KEY
     require_non_empty SKILLHUB_STORAGE_S3_REGION
+    reject_values SKILLHUB_STORAGE_S3_ACCESS_KEY "replace-me"
+    reject_values SKILLHUB_STORAGE_S3_SECRET_KEY "replace-me"
     validate_url SKILLHUB_STORAGE_S3_ENDPOINT
     validate_url SKILLHUB_STORAGE_S3_PUBLIC_ENDPOINT
     ;;
@@ -156,6 +163,10 @@ fi
 
 if [ "${SESSION_COOKIE_SECURE:-true}" != "true" ]; then
   warn "SESSION_COOKIE_SECURE is not true; only acceptable behind plain HTTP during temporary local verification"
+fi
+
+if [ "${SKILLHUB_AUTH_OPEN_ACCESS_ENABLED:-false}" = "true" ]; then
+  warn "SKILLHUB_AUTH_OPEN_ACCESS_ENABLED=true keeps the platform fully visible; suitable for internal distribution or temporary rollout only"
 fi
 
 if [ "${POSTGRES_BIND_ADDRESS:-127.0.0.1}" != "127.0.0.1" ]; then
