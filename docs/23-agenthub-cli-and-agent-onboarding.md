@@ -23,15 +23,17 @@
 
 同时，发布站点静态资源目录会携带一个可直接安装的 npm tarball：
 
-- `/downloads/agenthub-cli-0.1.0.tgz`
+- `/downloads/agenthub-cli-0.1.1.tgz`
 
 推荐安装命令：
 
 ```bash
-npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.0.tgz
+npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.1.tgz
 ```
 
 这样做的目的，是先解决“企业内网环境不方便走公共 npm registry / GHCR”的现实问题，让平台本身就能分发 CLI 包。
+
+当前 CLI 只依赖 Node.js 20+，不依赖 Python。对 Claude Code 在 Windows 环境下的安装更友好。
 
 ## 3. 人的接入流程
 
@@ -161,7 +163,7 @@ npx -y @guanglechen/agenthub-cli ...
 
 当前可用方式是：
 
-1. 通过站点静态资源下载 `agenthub-cli-0.1.0.tgz`
+1. 通过站点静态资源下载 `agenthub-cli-0.1.1.tgz`
 2. `npm install -g <tarball-url>`
 
 后续如果要正式发布 npm，可以直接基于 `packages/agenthub-cli` 执行发布流程。

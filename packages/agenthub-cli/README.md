@@ -2,6 +2,8 @@
 
 `agenthub-cli` is the CLI-first entrypoint for `AgentHub Enterprise`.
 
+It only requires Node.js 20+. Python is not required for skill installation or unpacking, which makes it a better fit for Claude Code on Windows.
+
 It supports:
 
 - registry search, inspect, download, install, and publish
@@ -14,7 +16,7 @@ It supports:
 From a packaged tarball served by an AgentHub deployment:
 
 ```bash
-npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.0.tgz
+npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.1.tgz
 ```
 
 ## Login

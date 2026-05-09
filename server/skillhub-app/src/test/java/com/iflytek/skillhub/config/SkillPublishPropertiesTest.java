@@ -16,6 +16,14 @@ class SkillPublishPropertiesTest {
             .withUserConfiguration(TestConfig.class);
 
     @Test
+    void defaultsReviewRequiredToFalse() {
+        contextRunner.run((context) -> {
+            SkillPublishProperties properties = context.getBean(SkillPublishProperties.class);
+            assertThat(properties.isReviewRequired()).isFalse();
+        });
+    }
+
+    @Test
     void bindsAllowedFileExtensionsFromEnvironmentStyleProperty() {
         contextRunner
                 .withInitializer((context) -> context.getEnvironment().getPropertySources().addFirst(

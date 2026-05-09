@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
-import { spawnSync } from 'node:child_process'
+import extractZip from 'extract-zip'
 import YAML from 'yaml'
 
 const DEFAULT_BASE_URL = 'http://localhost:8080'
@@ -296,10 +296,11 @@ async function commandInstall(options) {
 
     fs.rmSync(installDir, { recursive: true, force: true })
     fs.mkdirSync(installDir, { recursive: true })
-
-    const unzip = spawnSync('python3', ['-m', 'zipfile', '-e', zipPath, installDir], { encoding: 'utf8' })
-    if (unzip.status !== 0) {
-      fail(unzip.stderr.trim() || unzip.stdout.trim() || `Failed to unpack ${options.skill}`, unzip.status || 1)
+    try {
+      await extractZip(zipPath, { dir: installDir })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      fail(`Failed to unpack ${options.skill}: ${message}`)
     }
 
     const skillMdPath = path.join(installDir, 'SKILL.md')

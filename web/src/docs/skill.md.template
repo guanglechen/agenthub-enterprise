@@ -41,8 +41,10 @@ The platform is optimized for `agenthub-cli` and for Agent-driven workflows such
 Install the CLI package served by the platform:
 
 ```bash
-npm install -g ${SKILLHUB_PUBLIC_BASE_URL}/downloads/agenthub-cli-0.1.0.tgz
+npm install -g ${SKILLHUB_PUBLIC_BASE_URL}/downloads/agenthub-cli-0.1.1.tgz
 ```
+
+`agenthub-cli` only requires Node.js 20+. Python is not required for install or unpack workflows.
 
 Create a token from:
 

@@ -71,7 +71,7 @@ function resolveCliBinary(config) {
   if (baseUrl) {
     return {
       command: 'npx',
-      prefixArgs: ['-y', '--package', `${String(baseUrl).replace(/\/$/, '')}/downloads/agenthub-cli-0.1.0.tgz`, 'agenthub-cli'],
+      prefixArgs: ['-y', '--package', `${String(baseUrl).replace(/\/$/, '')}/downloads/agenthub-cli-0.1.1.tgz`, 'agenthub-cli'],
     }
   }
   return { command: 'npx', prefixArgs: ['-y', '--package', '@guanglechen/agenthub-cli', 'agenthub-cli'] }
@@ -199,28 +199,10 @@ function writeTempJson(data) {
 }
 
 function installSkill(skillCoordinate, targetDir, config) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agenthub-install-'))
-  try {
-    const { namespace, slug } = splitSkillCoordinate(skillCoordinate)
-    const zipPath = path.join(tempDir, `${namespace}--${slug}.zip`)
-    runCli(['download', '--skill', skillCoordinate, '--out', zipPath], config)
-
-    const installDir = path.resolve(targetDir, `${namespace}--${slug}`)
-    fs.rmSync(installDir, { recursive: true, force: true })
-    fs.mkdirSync(installDir, { recursive: true })
-
-    const unzip = spawnSync('python3', ['-m', 'zipfile', '-e', zipPath, installDir], { encoding: 'utf8' })
-    if (unzip.status !== 0) {
-      fail(unzip.stderr.trim() || unzip.stdout.trim() || `Failed to unpack ${skillCoordinate}`, unzip.status || 1)
-    }
-    const skillMdPath = path.join(installDir, 'SKILL.md')
-    if (!fs.existsSync(skillMdPath)) {
-      fail(`Installed skill is missing SKILL.md: ${skillCoordinate}`)
-    }
-    return { coordinate: skillCoordinate, installDir, skillMdPath }
-  } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true })
-  }
+  const installed = JSON.parse(
+    runCli(['install', '--skill', skillCoordinate, '--target', targetDir, '--force', '--json'], config),
+  )
+  return installed
 }
 
 function printHelp() {
