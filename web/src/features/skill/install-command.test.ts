@@ -51,14 +51,14 @@ describe('install-command', () => {
   it('uses the plain slug for the global namespace', () => {
     expect(buildInstallTarget('global', 'my-skill')).toBe('my-skill')
     expect(buildInstallCommand('global', 'my-skill', 'https://skill.xfyun.cn')).toBe(
-      'npx clawhub install my-skill --registry https://skill.xfyun.cn',
+      'agenthub-cli install --skill @global/my-skill --base-url https://skill.xfyun.cn',
     )
   })
 
   it('prefixes non-global namespaces in the install target', () => {
     expect(buildInstallTarget('team-alpha', 'my-skill')).toBe('team-alpha--my-skill')
     expect(buildInstallCommand('team-alpha', 'my-skill', 'https://skill.xfyun.cn')).toBe(
-      'npx clawhub install team-alpha--my-skill --registry https://skill.xfyun.cn',
+      'agenthub-cli install --skill @team-alpha/my-skill --base-url https://skill.xfyun.cn',
     )
   })
 

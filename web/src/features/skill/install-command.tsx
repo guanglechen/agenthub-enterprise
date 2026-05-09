@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Check, Copy } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { useCopyToClipboard } from '@/shared/lib/clipboard'
+import { buildAgenthubCliSkillInstallCommand, getAppBaseUrl } from '@/shared/lib/agenthub-cli'
 
 interface InstallCommandProps {
   namespace: string
@@ -15,31 +16,20 @@ export function buildInstallTarget(namespace: string, slug: string): string {
 }
 
 export function getBaseUrl(): string {
-  if (typeof window === 'undefined') {
-    return ''
-  }
-  const runtimeConfig = window.__SKILLHUB_RUNTIME_CONFIG__
-  const configuredUrl = runtimeConfig?.appBaseUrl
-  // Use configured URL only if it's set and not localhost
-  if (configuredUrl && !configuredUrl.includes('localhost')) {
-    return configuredUrl
-  }
-  // Fallback to current page origin
-  return `${window.location.protocol}//${window.location.host}`
+  return getAppBaseUrl()
 }
 
-export function buildInstallCommand(namespace: string, slug: string, baseUrl: string): string {
-  const installTarget = buildInstallTarget(namespace, slug)
-  return `npx clawhub install ${installTarget} --registry ${baseUrl}`
+export function buildInstallCommand(namespace: string, slug: string, baseUrl: string, version?: string): string {
+  return buildAgenthubCliSkillInstallCommand(namespace, slug, baseUrl, version)
 }
 
-export function InstallCommand({ namespace, slug }: InstallCommandProps) {
+export function InstallCommand({ namespace, slug, version }: InstallCommandProps) {
   const { t } = useTranslation()
   const [copied, copy] = useCopyToClipboard()
 
   const baseUrl = useMemo(() => getBaseUrl(), [])
 
-  const command = useMemo(() => buildInstallCommand(namespace, slug, baseUrl), [baseUrl, namespace, slug])
+  const command = useMemo(() => buildInstallCommand(namespace, slug, baseUrl, version), [baseUrl, namespace, slug, version])
 
   const handleCopy = async () => {
     try {

@@ -388,9 +388,36 @@ Run it against a local backend:
 
 SkillHub works as a skill registry backend for several agent platforms. Point any of the clients below at your SkillHub instance to publish, discover, and install skills.
 
+### AgentHub CLI
+
+For enterprise workflows, prefer `agenthub-cli`. It connects directly to the platform search, install, publish, catalog, relations, agent profile, and install-plan flows:
+
+```bash
+# Install the CLI package served by the platform
+npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.0.tgz
+
+# Login after creating a token
+agenthub-cli login --base-url https://your-agenthub.example.com --token sk_your_api_token_here
+agenthub-cli whoami --json
+
+# Search, install, and publish
+agenthub-cli search --q spring-boot --assetType scaffold --json
+agenthub-cli install --skill @global/java-microservice-baseline --base-url https://your-agenthub.example.com
+agenthub-cli publish --namespace team-alpha --file ./bundle.zip --catalog-file ./catalog.json --yes
+
+# Agent entrypoints
+agenthub-cli agent profile --json
+agenthub-cli agent install-plan --assetType microservice --domain order --stage develop --topology crud-api --stack java21,spring-boot3,maven --json
+```
+
+See also:
+
+- [`docs/23-agenthub-cli-and-agent-onboarding.md`](./docs/23-agenthub-cli-and-agent-onboarding.md)
+- the deployed Agent-readable entrypoint at `/registry/skill.md`
+
 ### [OpenClaw](https://github.com/openclaw/openclaw)
 
-[OpenClaw](https://github.com/openclaw/openclaw) is an open-source agent skill CLI. Configure it to use your SkillHub endpoint as the registry:
+[OpenClaw](https://github.com/openclaw/openclaw) is still useful when you need compatibility verification against the legacy SkillHub endpoint:
 
 ```bash
 # Configure registry URL

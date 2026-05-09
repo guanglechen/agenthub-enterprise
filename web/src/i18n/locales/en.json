@@ -331,6 +331,37 @@
     "previewMoreLabel": "View All",
     "userId": "User ID"
   },
+  "onboarding": {
+    "badge": "CLI and Agent Access",
+    "title": "Standard entrypoints for engineers and Agents",
+    "subtitle": "Install the AgentHub CLI first, then connect with a token. Engineers focus on search, install, and publish. Agents focus on the registry guide, workspace bootstrap, and install-plan execution.",
+    "tokenTitle": "Where to get a token",
+    "tokenBody": "Open Dashboard / Token Management to create credentials. Public read-only actions can work in open-access mode, but publishing, catalog maintenance, and team-private assets should still use an explicit token.",
+    "human": {
+      "title": "If you are an engineer",
+      "subtitle": "Install the CLI package, log in, verify identity, and start installing skills.",
+      "installTitle": "1. Install the CLI npm package",
+      "installDescription": "The platform serves a directly installable npm tarball so you do not depend on an external registry.",
+      "loginTitle": "2. Log in with a token",
+      "loginDescription": "Create a token from the Token Management page, then persist the CLI connection locally.",
+      "verifyTitle": "3. Verify the connection and start using assets",
+      "verifyDescription": "Run whoami first, then search and install scaffolds, business assets, and microservice skills."
+    },
+    "agent": {
+      "title": "If you are an Agent",
+      "subtitle": "Read the registry guide, initialize workspace config, then execute install-plan against the current project context.",
+      "docTitle": "1. Read the Agent entry document",
+      "docDescription": "The registry guide is the machine-readable entrypoint for command formats, token rules, and install-plan usage.",
+      "bootstrapTitle": "2. Bootstrap workspace access",
+      "bootstrapDescription": "Write `baseUrl`, `token`, and workspace defaults into `.claude/agenthub.json`.",
+      "planTitle": "3. Generate and execute an install plan",
+      "planDescription": "Build a recommended capability list from the current workspace context, then install the required skill baseline."
+    },
+    "actions": {
+      "openTokens": "Open Token Management",
+      "openAgentDoc": "Open Agent Guide"
+    }
+  },
   "mySkills": {
     "title": "My Skills",
     "subtitle": "Manage your published skills",
@@ -457,7 +488,7 @@
   },
   "tokens": {
     "pageTitle": "Token Management",
-    "pageSubtitle": "Manage access credentials for CLI and API"
+    "pageSubtitle": "Create credentials for CLI, Agents, and automation flows"
   },
   "reviews": {
     "title": "Review Center",

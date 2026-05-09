@@ -59,15 +59,22 @@ function loadConfig(workspace, options) {
   return readJsonFile(configPath)
 }
 
-function resolveCliBinary() {
+function resolveCliBinary(config) {
   if (process.env.AGENTHUB_CLI_BIN) {
-    return process.env.AGENTHUB_CLI_BIN
+    return { command: process.env.AGENTHUB_CLI_BIN, prefixArgs: [] }
   }
   const repoLocal = path.join(repoRoot, 'bin', 'agenthub-cli')
   if (fs.existsSync(repoLocal)) {
-    return repoLocal
+    return { command: repoLocal, prefixArgs: [] }
   }
-  fail('Unable to locate agenthub-cli. Set AGENTHUB_CLI_BIN or run from the AgentHub repository.')
+  const baseUrl = process.env.AGENTHUB_BASE_URL || config.baseUrl
+  if (baseUrl) {
+    return {
+      command: 'npx',
+      prefixArgs: ['-y', '--package', `${String(baseUrl).replace(/\/$/, '')}/downloads/agenthub-cli-0.1.0.tgz`, 'agenthub-cli'],
+    }
+  }
+  return { command: 'npx', prefixArgs: ['-y', '--package', '@guanglechen/agenthub-cli', 'agenthub-cli'] }
 }
 
 function buildCliEnv(config) {
@@ -79,8 +86,8 @@ function buildCliEnv(config) {
 }
 
 function runCli(cliArgs, config) {
-  const cliBinary = resolveCliBinary()
-  const result = spawnSync(cliBinary, cliArgs, {
+  const { command, prefixArgs } = resolveCliBinary(config)
+  const result = spawnSync(command, [...prefixArgs, ...cliArgs], {
     cwd: repoRoot,
     encoding: 'utf8',
     env: buildCliEnv(config),

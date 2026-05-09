@@ -12,6 +12,7 @@ import { getHeadlineVersion } from '@/shared/lib/skill-lifecycle'
 import { TokenList } from '@/features/token/token-list'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
 import { APP_SHELL_PAGE_CLASS_NAME } from '@/app/page-shell-style'
+import { AgenthubOnboardingGuide } from '@/shared/components/agenthub-onboarding-guide'
 import { limitPreviewItems } from './dashboard-preview'
 
 const DASHBOARD_PREVIEW_LIMIT = 5
@@ -170,6 +171,8 @@ export function DashboardPage() {
           </div>
         ))}
       </div>
+
+      <AgenthubOnboardingGuide />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)]">
         <div className="space-y-6">

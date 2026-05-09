@@ -230,7 +230,7 @@ public class SkillCatalogAppService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        return candidates.stream()
+        List<SkillRecommendationResponse> ranked = candidates.stream()
                 .map(candidate -> toRecommendation(candidate,
                         profiles.getOrDefault(candidate.getId(), emptyProfile()),
                         namespacesById.get(candidate.getNamespaceId()),
@@ -242,8 +242,18 @@ public class SkillCatalogAppService {
                 .filter(Objects::nonNull)
                 .sorted(Comparator.comparingDouble(SkillRecommendationResponse::score).reversed()
                         .thenComparing(SkillRecommendationResponse::updatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
-                .limit(limit)
                 .toList();
+
+        if (sourceRelationTargets.isEmpty()) {
+            return ranked.stream().limit(limit).toList();
+        }
+
+        LinkedHashMap<String, SkillRecommendationResponse> ordered = new LinkedHashMap<>();
+        ranked.stream()
+                .filter(item -> item.reasons().contains("related-by-graph"))
+                .forEach(item -> ordered.put(item.namespace() + "/" + item.slug(), item));
+        ranked.forEach(item -> ordered.putIfAbsent(item.namespace() + "/" + item.slug(), item));
+        return ordered.values().stream().limit(limit).toList();
     }
 
     private SkillRecommendationResponse toRecommendation(Skill candidate,

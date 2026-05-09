@@ -331,6 +331,37 @@
     "previewMoreLabel": "查看全部",
     "userId": "用户 ID"
   },
+  "onboarding": {
+    "badge": "CLI 与 Agent 接入",
+    "title": "人和 Agent 进入平台后的标准用法",
+    "subtitle": "先安装 AgentHub CLI，再通过 Token 建立连接。研发工程师重点关注搜索、安装和发布；Agent 重点关注 registry 文档、workspace 初始化和 install-plan。",
+    "tokenTitle": "Token 获取位置",
+    "tokenBody": "访问“控制台 / Token 管理”创建访问凭证。公共只读操作在开放模式下可直接访问，但发布、目录维护和团队私有资产仍建议显式使用 Token。",
+    "human": {
+      "title": "如果你是研发工程师",
+      "subtitle": "先安装 CLI 包，再登录、校验身份并安装技能。",
+      "installTitle": "1. 安装 CLI npm 包",
+      "installDescription": "平台会直接提供一个可安装的 npm tarball，不依赖外部镜像仓库。",
+      "loginTitle": "2. 使用 Token 登录 CLI",
+      "loginDescription": "先在 Token 管理页创建访问凭证，再执行登录命令保存本地配置。",
+      "verifyTitle": "3. 校验连接并开始搜索 / 安装",
+      "verifyDescription": "通过 whoami 校验当前连接，再开始搜索脚手架、业务能力和微服务技能。"
+    },
+    "agent": {
+      "title": "如果你是 Agent",
+      "subtitle": "先读 registry 文档，再初始化 workspace 配置，最后根据 install-plan 执行安装。",
+      "docTitle": "1. 读取 Agent 入口文档",
+      "docDescription": "所有 Agent 接入说明、命令格式、Token 规则和 install-plan 用法都在 registry 文档里。",
+      "bootstrapTitle": "2. 初始化 workspace 连接",
+      "bootstrapDescription": "把 baseUrl、token 和 workspace 侧的默认配置写入 `.claude/agenthub.json`。",
+      "planTitle": "3. 生成安装计划并执行",
+      "planDescription": "根据当前项目上下文获取推荐能力清单，再按 skill 坐标安装所需基线。"
+    },
+    "actions": {
+      "openTokens": "打开 Token 管理",
+      "openAgentDoc": "打开 Agent 文档"
+    }
+  },
   "mySkills": {
     "title": "我的技能",
     "subtitle": "管理你发布的技能",
@@ -457,7 +488,7 @@
   },
   "tokens": {
     "pageTitle": "Token 管理",
-    "pageSubtitle": "管理 CLI 和 API 使用的访问凭证"
+    "pageSubtitle": "创建供 CLI、Agent 和自动化流程使用的访问凭证"
   },
   "reviews": {
     "title": "审核中心",

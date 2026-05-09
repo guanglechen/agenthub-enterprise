@@ -15,6 +15,10 @@ vi.mock('@/features/token/token-list', () => ({
   TokenList: () => <div>token-list</div>,
 }))
 
+vi.mock('@/shared/components/agenthub-onboarding-guide', () => ({
+  AgenthubOnboardingGuide: () => <div>onboarding-guide</div>,
+}))
+
 vi.mock('@/shared/components/dashboard-page-header', () => ({
   DashboardPageHeader: ({ title, subtitle }: { title: string; subtitle: string }) => (
     <div>
@@ -36,6 +40,7 @@ describe('TokensPage', () => {
 
     expect(html).toContain('tokens.pageTitle')
     expect(html).toContain('tokens.pageSubtitle')
+    expect(html).toContain('onboarding-guide')
     expect(html).toContain('token-list')
   })
 })

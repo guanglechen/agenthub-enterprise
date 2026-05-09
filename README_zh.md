@@ -324,9 +324,36 @@ SkillHub 采用清晰的分层架构：
 
 SkillHub 设计为与各种智能体平台和框架无缝集成。
 
+### AgentHub CLI
+
+企业默认推荐使用 `agenthub-cli`，它可以直接对接当前平台的搜索、安装、发布、catalog、relations、agent profile 与 install-plan 能力：
+
+```bash
+# 安装平台直接提供的 npm 包
+npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.0.tgz
+
+# 创建 Token 后登录
+agenthub-cli login --base-url https://your-agenthub.example.com --token sk_your_api_token_here
+agenthub-cli whoami --json
+
+# 搜索、安装、发布
+agenthub-cli search --q spring-boot --assetType scaffold --json
+agenthub-cli install --skill @global/java-microservice-baseline --base-url https://your-agenthub.example.com
+agenthub-cli publish --namespace team-alpha --file ./bundle.zip --catalog-file ./catalog.json --yes
+
+# Agent 入口
+agenthub-cli agent profile --json
+agenthub-cli agent install-plan --assetType microservice --domain order --stage develop --topology crud-api --stack java21,spring-boot3,maven --json
+```
+
+更多说明参见：
+
+- [`docs/23-agenthub-cli-and-agent-onboarding.md`](./docs/23-agenthub-cli-and-agent-onboarding.md)
+- 部署后的 Agent 可读入口：`/registry/skill.md`
+
 ### [OpenClaw](https://github.com/openclaw/openclaw)
 
-[OpenClaw](https://github.com/openclaw/openclaw) 是开源的智能体技能 CLI 工具。配置它使用您的 SkillHub 端点作为注册中心：
+[OpenClaw](https://github.com/openclaw/openclaw) 是开源的智能体技能 CLI 工具。若需要做兼容性验证，可继续把它指向您的 SkillHub 端点：
 
 ```bash
 # 配置注册中心地址

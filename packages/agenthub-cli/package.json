@@ -1,0 +1,26 @@
+{
+  "name": "@guanglechen/agenthub-cli",
+  "version": "0.1.0",
+  "description": "CLI for AgentHub Enterprise registries",
+  "type": "module",
+  "bin": {
+    "agenthub-cli": "bin/agenthub-cli.mjs"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "keywords": [
+    "agenthub",
+    "cli",
+    "skills",
+    "enterprise-agent"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {
+    "yaml": "^2.8.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -17,6 +17,13 @@ The plugin reads configuration in this order:
 1. Environment variables `AGENTHUB_BASE_URL` and `AGENTHUB_TOKEN`
 2. Workspace file `.claude/agenthub.json`
 
+Recommended bootstrap:
+
+```bash
+agenthub-cli login --base-url https://your-agenthub.example.com --token sk_your_api_token_here
+agenthub-cli config init-workspace --workspace . --base-url https://your-agenthub.example.com --token sk_your_api_token_here --namespace team-alpha --domain order
+```
+
 Example config is in [examples/agenthub.json](/Users/chenguangyue/Documents/code/github/iflytek/agenthub-enterprise/plugins/agenthub-connector-plugin/examples/agenthub.json:1).
 
 ## Local usage
@@ -29,6 +36,14 @@ node plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs detect-context
 node plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs install-plan --context-file plugins/agenthub-connector-plugin/examples/workspace-context.json
 node plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs apply-install-plan --context-file plugins/agenthub-connector-plugin/examples/workspace-context.json --mode required
 ```
+
+If the repository-local `bin/agenthub-cli` is not available, the plugin will fall back to the CLI tarball served by the connected AgentHub deployment. If no deployment URL is configured, it finally falls back to:
+
+```bash
+npx -y @guanglechen/agenthub-cli ...
+```
+
+That keeps the plugin aligned with the npm package once the CLI is published or distributed through the platform tarball.
 
 ## Local marketplace stub
 

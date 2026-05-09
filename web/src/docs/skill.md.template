@@ -1,145 +1,187 @@
 ---
-name: skillhub-registry
-description: Use this when you need to search, inspect, install, or publish agent skills against a SkillHub registry. SkillHub is a skill registry with a ClawHub-compatible API layer, so prefer the `clawhub` CLI for registry operations instead of making raw HTTP calls.
+name: agenthub-enterprise-registry
+description: Read this before using AgentHub Enterprise from a human workflow or an AI Agent. It explains what the platform is for, how to install the AgentHub CLI, how to obtain a token, how to initialize workspace config, and how to execute search, install, publish, and install-plan workflows.
 ---
 
-# SkillHub Registry
+# AgentHub Enterprise Registry Guide
 
-Use this skill when you need to work with a SkillHub registry: search skills, inspect metadata, install a package, or publish a new version.
+This document is the machine-readable entrypoint for `AgentHub Enterprise`.
 
-> Important: Prefer the `clawhub` CLI for registry workflows. SkillHub exposes a ClawHub-compatible API surface and a discovery endpoint at `/.well-known/clawhub.json`, so the CLI is the safest path for auth, resolution, and download behavior. Only fall back to raw HTTP when debugging the server itself.
+Use it when you need to:
 
-## What SkillHub Is
+- understand what this platform is for
+- connect a human CLI workflow to the platform
+- connect an Agent workspace to the platform
+- obtain the right install and publish commands
+- understand when a token is required
 
-SkillHub is an enterprise-oriented skill registry. It stores versioned skill packages, supports namespace-based skill management, and keeps `SKILL.md` compatibility with OpenSkills-style packages.
+## What This Platform Is
 
-Key facts:
+`AgentHub Enterprise` is a private development asset hub for enterprise AI engineering.
 
-- Internal coordinates use `@{namespace}/{skill_slug}`.
-- If using the clawhub CLI, the compatible format is `{namespace}--{skill_slug}`.
-- ClawHub-compatible clients use a `{namespace}--{skill_slug}` slug instead.
-- `latest` always means the latest published version, never draft or pending review.
-- Public skills in `@global` can be downloaded anonymously.
-- If no namespace is specified, it defaults to `@global`.
-- `{skill_slug}` can be used instead of `global--{skill_slug}`
-- Team namespace skills and non-public skills require authentication.
+It is not only a generic skill marketplace. It is used to distribute and maintain:
 
-## Configure The CLI
+- product capabilities
+- project scaffolds
+- business-domain assets
+- microservice skills
+- quality and governance baselines
+- platform integration assets
 
-Point `clawhub` at the SkillHub base URL:
+The platform is optimized for `agenthub-cli` and for Agent-driven workflows such as:
 
-```bash
-export CLAWHUB_REGISTRY=${SKILLHUB_PUBLIC_BASE_URL}
-```
+1. discover existing assets
+2. initialize a workspace
+3. generate an install plan
+4. install required skills
+5. publish or maintain a governed skill package
 
-Alternatively, use the `--registry` parameter every time, for example:
+## Human Quick Start
 
-```bash
-npx clawhub install my-skill --registry ${SKILLHUB_PUBLIC_BASE_URL}
-```
-
-
-If you need authenticated access, provide an API token:
-
-```bash
-clawhub login --token sk_your_api_token_here
-```
-
-Optional local check:
+Install the CLI package served by the platform:
 
 ```bash
-curl ${SKILLHUB_PUBLIC_BASE_URL}/.well-known/clawhub.json
+npm install -g ${SKILLHUB_PUBLIC_BASE_URL}/downloads/agenthub-cli-0.1.0.tgz
 ```
 
-Expected response:
+Create a token from:
 
-```json
-{"apiBase":"/api/v1"}
+```text
+${SKILLHUB_PUBLIC_BASE_URL}/dashboard/tokens
 ```
 
-## Coordinate Rules - IMPORTANT
+Login and verify access:
 
-SkillHub has two naming forms:
+```bash
+agenthub-cli login --base-url ${SKILLHUB_PUBLIC_BASE_URL} --token sk_your_api_token_here
+agenthub-cli whoami --json
+```
 
-| SkillHub coordinate | Canonical slug for `clawhub` |
-|---|---|
-| `@global/my-skill` | `my-skill` |
-| `@team-name/my-skill` | `team-name--my-skill` |
+Search and install:
 
-Rules:
+```bash
+agenthub-cli search --q spring-boot --assetType scaffold --json
+agenthub-cli install --skill @global/java-microservice-baseline --base-url ${SKILLHUB_PUBLIC_BASE_URL}
+```
 
-- `--` is the namespace separator in the compatibility layer.
-- If there is no `--`, the skill is treated as `@global/...`.
-- `latest` resolves to the latest published version only.
+Publish:
+
+```bash
+agenthub-cli publish --namespace team-alpha --file ./bundle.zip --catalog-file ./catalog.json --yes
+```
+
+## Agent Quick Start
+
+If you are an Agent, treat this document as the required onboarding spec.
+
+### Step 1. Read platform profile
+
+```bash
+agenthub-cli agent profile --base-url ${SKILLHUB_PUBLIC_BASE_URL} --json
+```
+
+This tells you:
+
+- what the platform is for
+- which bundles are recommended by default
+- which asset types and domains are expected
+
+### Step 2. Obtain a token when write or governed access is needed
+
+Token management page:
+
+```text
+${SKILLHUB_PUBLIC_BASE_URL}/dashboard/tokens
+```
+
+Guidance:
+
+- public read-only search and download may work without a token in open-access deployments
+- team-private assets, publishing, catalog maintenance, labels, and relations should use a token
+
+### Step 3. Initialize workspace configuration
+
+Write `.claude/agenthub.json`:
+
+```bash
+agenthub-cli config init-workspace \
+  --workspace . \
+  --base-url ${SKILLHUB_PUBLIC_BASE_URL} \
+  --token sk_your_api_token_here \
+  --namespace team-alpha \
+  --domain order \
+  --assetType microservice \
+  --stage develop \
+  --topology crud-api \
+  --stack java21,spring-boot3,maven
+```
+
+### Step 4. Ask the platform for an install plan
+
+```bash
+agenthub-cli agent install-plan \
+  --assetType microservice \
+  --domain order \
+  --stage develop \
+  --topology crud-api \
+  --stack java21,spring-boot3,maven \
+  --namespace team-alpha \
+  --json
+```
+
+### Step 5. Install required skills
+
+```bash
+agenthub-cli install --skill @global/java-microservice-baseline --base-url ${SKILLHUB_PUBLIC_BASE_URL}
+agenthub-cli install --skill @global/quality-gate-baseline --base-url ${SKILLHUB_PUBLIC_BASE_URL}
+```
+
+### Step 6. Optional local connector plugin
+
+If your environment already has the local Claude Code connector plugin, you can continue with the plugin after workspace bootstrap. The plugin internally reuses `agenthub-cli`.
+
+## Token Rules
+
+Use a token when any of the following is true:
+
+- you need to publish a skill
+- you need to update catalog metadata
+- you need to maintain labels or relations
+- you need access to team-private or governed assets
+- you need reliable identity for automated pipelines
+
+Validate the token with:
+
+```bash
+agenthub-cli whoami --json
+```
+
+## Coordinate Rules
+
+Canonical platform coordinate:
+
+```text
+@namespace/skill-slug
+```
 
 Examples:
 
-```bash
-npx clawhub install my-skill
-npx clawhub install my-skill@1.2.0
-npx clawhub install team-name--my-skill
-```
+- `@global/java-microservice-baseline`
+- `@team-alpha/order-bff-scaffold`
 
-## Common Workflows
+`latest` always means the latest published version, never draft or pending review.
 
-### Search
+## Common Commands
 
 ```bash
-npx clawhub search email
+agenthub-cli search --q payment --domain payment --json
+agenthub-cli inspect --skill @global/quality-gate-baseline --json
+agenthub-cli download --skill @global/quality-gate-baseline --out quality-gate.zip
+agenthub-cli catalog get --skill @team-alpha/order-bff-scaffold --json
+agenthub-cli relations get --skill @team-alpha/order-bff-scaffold --json
+agenthub-cli recommend --assetType scaffold --domain order --stack spring-boot3,maven --json
 ```
 
-Use an empty query when you want a broad listing:
+## Compatibility Note
 
-```bash
-npx clawhub search ""
-```
-
-### Inspect A Skill
-
-```bash
-npx clawhub info my-skill
-npx clawhub info team-name--my-skill
-```
-
-### Install
-
-```bash
-npx clawhub install my-skill
-npx clawhub install my-skill@1.2.0
-npx clawhub install team-name--my-skill
-```
-
-### Publish
-
-Prepare a skill package directory, then publish it:
-
-```bash
-npx clawhub publish ./my-skill
-```
-
-Publishing requires authentication and sufficient permissions in the target namespace.
-
-## Authentication And Visibility
-
-Download and search permissions depend on namespace and visibility:
-
-- `@global` + `PUBLIC`: anonymous search, inspect, and download are allowed.
-- Team namespace + `PUBLIC`: authentication required for download.
-- `NAMESPACE_ONLY`: authenticated namespace members only.
-- `PRIVATE`: owner or explicitly authorized users only.
-- Publish, star, and other write operations always require authentication.
-
-If a request fails with `403`, check:
-
-- whether the skill belongs to a team namespace,
-- whether the skill is `NAMESPACE_ONLY` or `PRIVATE`,
-- whether your token is valid,
-- whether you have namespace publish permissions.
-
-## Skill Package Contract
-
-SkillHub expects OpenSkills-style packages with `SKILL.md` as the entry point.
-
-## Publishing Guidance
-
-Just need to follow the OpenSkills-style standards.
+The platform still exposes a ClawHub-compatible API surface for compatibility. Prefer `agenthub-cli` for enterprise workflows. Only fall back to legacy `clawhub` commands when you are explicitly testing compatibility behavior.

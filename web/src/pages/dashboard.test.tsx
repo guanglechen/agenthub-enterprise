@@ -56,6 +56,10 @@ vi.mock('@/features/token/token-list', () => ({
   TokenList: () => null,
 }))
 
+vi.mock('@/shared/components/agenthub-onboarding-guide', () => ({
+  AgenthubOnboardingGuide: () => <div>onboarding-guide</div>,
+}))
+
 vi.mock('@/shared/ui/card', () => ({
   Card: ({ children }: { children: unknown }) => children,
   CardContent: ({ children }: { children: unknown }) => children,
@@ -81,6 +85,7 @@ describe('DashboardPage', () => {
 
     expect(html).toContain('dashboard.title')
     expect(html).toContain('发布新 Skill')
+    expect(html).toContain('onboarding-guide')
   })
 
   it('shows the my-skills preview section', () => {
