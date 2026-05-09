@@ -17,6 +17,14 @@ async function parseEnvelope<T>(response: Awaited<ReturnType<APIRequestContext['
 }
 
 async function loginAsBootstrapAdmin(page: Page) {
+  const currentUserResponse = await page.context().request.get('/api/v1/auth/me')
+  if (currentUserResponse.ok()) {
+    const text = await currentUserResponse.text()
+    const parsed = JSON.parse(text) as Envelope<{ userId?: string }>
+    if (parsed.code === 0) {
+      return
+    }
+  }
   const username = process.env.BOOTSTRAP_ADMIN_USERNAME || 'admin'
   const password = process.env.BOOTSTRAP_ADMIN_PASSWORD || 'Admin@staging2026'
   await page.context().request.get('/api/v1/auth/providers')

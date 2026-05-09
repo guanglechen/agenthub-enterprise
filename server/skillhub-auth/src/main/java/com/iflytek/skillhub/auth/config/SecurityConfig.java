@@ -6,6 +6,7 @@ import com.iflytek.skillhub.auth.oauth.OAuth2LoginFailureHandler;
 import com.iflytek.skillhub.auth.oauth.OAuth2LoginSuccessHandler;
 import com.iflytek.skillhub.auth.oauth.SkillHubOAuth2AuthorizationRequestResolver;
 import com.iflytek.skillhub.auth.mock.MockAuthFilter;
+import com.iflytek.skillhub.auth.open.OpenAccessAuthFilter;
 import com.iflytek.skillhub.auth.policy.RouteSecurityPolicyRegistry;
 import com.iflytek.skillhub.auth.token.ApiTokenAuthenticationFilter;
 import com.iflytek.skillhub.auth.token.ApiTokenScopeFilter;
@@ -63,6 +64,7 @@ public class SecurityConfig {
     private final AuthenticationEntryPoint apiAuthenticationEntryPoint;
     private final AccessDeniedHandler apiAccessDeniedHandler;
     private final ObjectProvider<MockAuthFilter> mockAuthFilterProvider;
+    private final ObjectProvider<OpenAccessAuthFilter> openAccessAuthFilterProvider;
     private final RouteSecurityPolicyRegistry routeSecurityPolicyRegistry;
 
     public SecurityConfig(CustomOAuth2UserService customOAuth2UserService,
@@ -75,6 +77,7 @@ public class SecurityConfig {
                           AuthenticationEntryPoint apiAuthenticationEntryPoint,
                           AccessDeniedHandler apiAccessDeniedHandler,
                           ObjectProvider<MockAuthFilter> mockAuthFilterProvider,
+                          ObjectProvider<OpenAccessAuthFilter> openAccessAuthFilterProvider,
                           RouteSecurityPolicyRegistry routeSecurityPolicyRegistry) {
         this.customOAuth2UserService = customOAuth2UserService;
         this.customOidcUserService = customOidcUserService;
@@ -86,6 +89,7 @@ public class SecurityConfig {
         this.apiAuthenticationEntryPoint = apiAuthenticationEntryPoint;
         this.apiAccessDeniedHandler = apiAccessDeniedHandler;
         this.mockAuthFilterProvider = mockAuthFilterProvider;
+        this.openAccessAuthFilterProvider = openAccessAuthFilterProvider;
         this.routeSecurityPolicyRegistry = routeSecurityPolicyRegistry;
     }
 
@@ -160,6 +164,10 @@ public class SecurityConfig {
         MockAuthFilter mockAuthFilter = mockAuthFilterProvider.getIfAvailable();
         if (mockAuthFilter != null) {
             http.addFilterBefore(mockAuthFilter, AnonymousAuthenticationFilter.class);
+        }
+        OpenAccessAuthFilter openAccessAuthFilter = openAccessAuthFilterProvider.getIfAvailable();
+        if (openAccessAuthFilter != null) {
+            http.addFilterBefore(openAccessAuthFilter, AnonymousAuthenticationFilter.class);
         }
 
         return http.build();

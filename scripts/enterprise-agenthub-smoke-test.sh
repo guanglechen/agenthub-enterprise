@@ -196,9 +196,20 @@ echo "Target: $BASE_URL"
 echo "Workspace: $WORKDIR"
 echo
 
+INITIAL_AUTH_ME="$(curl_base --max-time 20 -sS -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/auth/me" || true)"
+OPEN_ACCESS_MODE="false"
+if [[ "$INITIAL_AUTH_ME" == "200" ]]; then
+  OPEN_ACCESS_MODE="true"
+fi
+
 ADMIN_CSRF="$(fetch_csrf_token "$ADMIN_COOKIE_JAR")"
-ADMIN_LOGIN_RESPONSE="$(api_json POST "$BASE_URL/api/v1/auth/local/login" "$ADMIN_COOKIE_JAR" "$ADMIN_CSRF" "{\"username\":\"$ADMIN_USERNAME\",\"password\":\"$ADMIN_PASSWORD\"}")"
-assert_contains "Bootstrap admin login" "$ADMIN_LOGIN_RESPONSE" "\"code\":0"
+if [[ "$OPEN_ACCESS_MODE" == "true" ]]; then
+  echo "PASS: Bootstrap admin session provided by open-access mode"
+  PASS=$((PASS + 1))
+else
+  ADMIN_LOGIN_RESPONSE="$(api_json POST "$BASE_URL/api/v1/auth/local/login" "$ADMIN_COOKIE_JAR" "$ADMIN_CSRF" "{\"username\":\"$ADMIN_USERNAME\",\"password\":\"$ADMIN_PASSWORD\"}")"
+  assert_contains "Bootstrap admin login" "$ADMIN_LOGIN_RESPONSE" "\"code\":0"
+fi
 ADMIN_CSRF="$(fetch_csrf_token "$ADMIN_COOKIE_JAR")"
 
 CREATE_NS_RESPONSE="$(api_json POST "$BASE_URL/api/v1/namespaces" "$ADMIN_COOKIE_JAR" "$ADMIN_CSRF" "{\"slug\":\"$NAMESPACE_SLUG\",\"displayName\":\"Enterprise $NAMESPACE_SLUG\",\"description\":\"enterprise smoke\"}")"

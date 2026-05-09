@@ -38,6 +38,7 @@ import {
   buildApiUrl,
   fetchText,
   getDirectAuthRuntimeConfig,
+  isOpenAccessRuntimeEnabled,
   getSessionBootstrapRuntimeConfig,
 } from './client'
 
@@ -157,6 +158,21 @@ describe('getDirectAuthRuntimeConfig', () => {
         authDirectProvider: 'ldap',
       }
       expect(getDirectAuthRuntimeConfig().enabled).toBe(true)
+    }
+  })
+})
+
+describe('isOpenAccessRuntimeEnabled', () => {
+  it('returns false when no runtime config is present', () => {
+    expect(isOpenAccessRuntimeEnabled()).toBe(false)
+  })
+
+  it('treats truthy flags as enabled', () => {
+    for (const flag of ['1', 'yes', 'on', 'TRUE', ' true ']) {
+      window.__SKILLHUB_RUNTIME_CONFIG__ = {
+        authOpenAccessEnabled: flag,
+      }
+      expect(isOpenAccessRuntimeEnabled()).toBe(true)
     }
   })
 })

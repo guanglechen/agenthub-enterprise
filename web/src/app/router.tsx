@@ -61,8 +61,6 @@ function createRoleProtectedRouteComponent<TModule extends Record<string, unknow
   }
 }
 
-const LandingPage = createLazyRouteComponent(() => import('@/pages/landing'), 'LandingPage')
-const HomePage = createLazyRouteComponent(() => import('@/pages/home'), 'HomePage')
 const LoginPage = createLazyRouteComponent(() => import('@/pages/login'), 'LoginPage')
 const RegisterPage = createLazyRouteComponent(() => import('@/pages/register'), 'RegisterPage')
 const ResetPasswordPage = createLazyRouteComponent(() => import('@/pages/reset-password'), 'ResetPasswordPage')
@@ -151,22 +149,52 @@ const rootRoute = createRootRoute({
 })
 
 const requireAuth = createRequireAuth(getCurrentUser)
+const DEFAULT_MARKETPLACE_SEARCH = {
+  q: '',
+  sort: 'recommended',
+  page: 0,
+  starredOnly: false,
+} as const
+
+async function redirectIfAuthenticated() {
+  const user = await getCurrentUser()
+  if (user) {
+    throw redirect({ to: '/dashboard' })
+  }
+}
 
 const landingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: LandingPage,
+  beforeLoad: async () => {
+    const user = await getCurrentUser()
+    if (user) {
+      throw redirect({ to: '/dashboard' })
+    }
+    throw redirect({
+      to: '/search',
+      search: DEFAULT_MARKETPLACE_SEARCH,
+    })
+  },
+  component: () => null,
 })
 
 const skillsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'skills',
-  component: HomePage,
+  beforeLoad: async () => {
+    throw redirect({
+      to: '/search',
+      search: DEFAULT_MARKETPLACE_SEARCH,
+    })
+  },
+  component: () => null,
 })
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'login',
+  beforeLoad: redirectIfAuthenticated,
   validateSearch: (search: Record<string, unknown>): { returnTo: string; reason?: string } => ({
     returnTo: typeof search.returnTo === 'string' ? search.returnTo : '',
     reason: typeof search.reason === 'string' ? search.reason : undefined,
@@ -177,6 +205,7 @@ const loginRoute = createRoute({
 const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'register',
+  beforeLoad: redirectIfAuthenticated,
   validateSearch: (search: Record<string, unknown>) => ({
     returnTo: typeof search.returnTo === 'string' ? search.returnTo : '',
   }),
@@ -219,7 +248,7 @@ const searchRoute = createRoute({
       stage: typeof search.stage === 'string' && search.stage ? search.stage : undefined,
       topology: typeof search.topology === 'string' && search.topology ? search.topology : undefined,
       stack: typeof search.stack === 'string' && search.stack ? search.stack : undefined,
-      sort: (search.sort as string) || 'newest',
+      sort: (search.sort as string) || 'recommended',
       page: Number(search.page) || 0,
       starredOnly: search.starredOnly === true || search.starredOnly === 'true',
     }

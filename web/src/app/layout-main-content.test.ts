@@ -3,7 +3,6 @@ import {
   CENTERED_DASHBOARD_CONTENT_CLASS_NAME,
   CENTERED_MAIN_CLASS_NAME,
   CENTERED_SEARCH_CONTENT_CLASS_NAME,
-  DEFAULT_MAIN_CLASS_NAME,
   getAppMainContentLayout,
   resolveAppMainContentPathname,
 } from './layout-main-content'
@@ -23,7 +22,7 @@ describe('getAppMainContentLayout', () => {
       mainClassName: CENTERED_MAIN_CLASS_NAME,
       contentClassName: CENTERED_SEARCH_CONTENT_CLASS_NAME,
     })
-    expect(layout.contentClassName).toContain('max-w-[1200px]')
+    expect(layout.contentClassName).toContain('max-w-[1360px]')
   })
 
   it('centers all dashboard sub-pages within a slightly narrower content frame', () => {
@@ -33,13 +32,13 @@ describe('getAppMainContentLayout', () => {
       mainClassName: CENTERED_MAIN_CLASS_NAME,
       contentClassName: CENTERED_DASHBOARD_CONTENT_CLASS_NAME,
     })
-    expect(layout.contentClassName).toContain('max-w-[1200px]')
+    expect(layout.contentClassName).toContain('max-w-[1360px]')
   })
 
-  it('leaves other non-landing routes on the default full-width app content layout', () => {
+  it('centers skill detail routes inside the enterprise detail frame', () => {
     expect(getAppMainContentLayout('/space/acme/demo')).toEqual({
-      mainClassName: DEFAULT_MAIN_CLASS_NAME,
-      contentClassName: '',
+      mainClassName: CENTERED_MAIN_CLASS_NAME,
+      contentClassName: 'mx-auto w-full max-w-[1360px]',
     })
   })
 })

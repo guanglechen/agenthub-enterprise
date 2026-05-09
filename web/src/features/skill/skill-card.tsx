@@ -25,14 +25,12 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
   const isInteractive = typeof onClick === 'function'
   const badgeSummary = buildCatalogBadgeSummary(skill.catalogProfile)
   const metaSummary = buildCatalogMetaSummary(skill.catalogProfile)
+  const scoreLabel =
+    typeof skill.recommendationScore === 'number' ? `${Math.round(skill.recommendationScore * 100)} / 100` : undefined
 
   return (
     <Card
-      className="h-full cursor-pointer group relative overflow-hidden border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2"
-      style={{
-        borderColor: 'hsl(var(--border-card))',
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)',
-      }}
+      className="enterprise-panel enterprise-stat-card enterprise-surface-stripe h-full cursor-pointer group relative overflow-hidden border-0 shadow-none transition-all hover:-translate-y-1 hover:shadow-[0_20px_40px_-24px_rgba(15,23,42,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2"
       onClick={onClick}
       onKeyDown={(event) => {
         if (!isInteractive) {
@@ -47,10 +45,13 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
       role={isInteractive ? 'link' : undefined}
       tabIndex={isInteractive ? 0 : undefined}
     >
-      <div className="flex h-full flex-col p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className="space-y-2">
-            <h3 className="font-semibold text-lg group-hover:text-primary transition-colors" style={{ color: 'hsl(var(--foreground))' }}>
+      <div className="flex h-full flex-col gap-5 p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 space-y-2">
+            <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
+              @{skill.namespace}/{skill.slug}
+            </div>
+            <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors" style={{ color: 'hsl(var(--foreground))' }}>
               {skill.displayName}
             </h3>
             {badgeSummary.length > 0 && (
@@ -67,19 +68,24 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-end gap-2">
             <NamespaceBadge type="TEAM" name={`@${skill.namespace}`} />
+            {scoreLabel ? (
+              <span className="rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold text-rose-700">
+                推荐 {scoreLabel}
+              </span>
+            ) : null}
           </div>
         </div>
 
         {skill.summary && (
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
+          <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
             {skill.summary}
           </p>
         )}
 
         {metaSummary.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-2 text-xs text-slate-500">
+          <div className="flex flex-wrap gap-2 text-xs text-slate-500">
             {metaSummary.map((item) => (
               <span key={item} className="rounded-full bg-slate-100 px-2.5 py-1">
                 {item}
@@ -88,9 +94,9 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
           </div>
         )}
 
-        <div className="mt-auto flex items-center gap-4 text-xs text-muted-foreground">
+        <div className="mt-auto flex flex-wrap items-center gap-4 border-t border-slate-200/80 pt-4 text-xs text-muted-foreground">
           {headlineVersion && (
-            <span className="px-2.5 py-1 rounded-full bg-secondary/60 font-mono">
+            <span className="rounded-full bg-secondary/60 px-2.5 py-1 font-mono">
               v{headlineVersion.version}
             </span>
           )}

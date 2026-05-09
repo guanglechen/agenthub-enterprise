@@ -52,7 +52,10 @@ export function SearchBar({ defaultValue = '', value, placeholder, isSearching =
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-3 glass-strong p-2 rounded-xl">
+    <form
+      onSubmit={handleSubmit}
+      className="flex gap-3 rounded-[22px] border border-slate-200/90 bg-white/95 p-2 shadow-[0_16px_34px_-24px_rgba(15,23,42,0.45)]"
+    >
       <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
@@ -61,7 +64,7 @@ export function SearchBar({ defaultValue = '', value, placeholder, isSearching =
           onChange={(e) => handleChange(e.target.value)}
           maxLength={MAX_SEARCH_QUERY_LENGTH}
           placeholder={placeholder || t('searchBar.placeholder')}
-          className="pl-10 pr-10 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-12"
+          className="h-12 rounded-2xl border-0 bg-transparent pl-10 pr-10 focus-visible:ring-0 focus-visible:ring-offset-0"
         />
         {currentQuery ? (
           <button

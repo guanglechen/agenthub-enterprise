@@ -23,6 +23,8 @@ services:
       REDIS_PORT: 6379
       SESSION_COOKIE_SECURE: "false"
       SKILLHUB_PUBLIC_BASE_URL: "http://localhost"
+      SKILLHUB_AUTH_OPEN_ACCESS_ENABLED: "true"
+      SKILLHUB_AUTH_OPEN_ACCESS_USER_ID: staging-admin
       DEVICE_AUTH_VERIFICATION_URI: "http://localhost/cli/auth"
       SKILLHUB_STORAGE_PROVIDER: s3
       STORAGE_BASE_PATH: /var/lib/skillhub/storage
@@ -65,6 +67,7 @@ services:
       SKILLHUB_API_UPSTREAM: http://server:8080
       SKILLHUB_WEB_API_BASE_URL: ""
       SKILLHUB_PUBLIC_BASE_URL: ""
+      SKILLHUB_WEB_AUTH_OPEN_ACCESS_ENABLED: "true"
     depends_on:
       server:
         condition: service_healthy

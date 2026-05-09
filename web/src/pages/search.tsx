@@ -1,12 +1,12 @@
 import { startTransition, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Loader2 } from 'lucide-react'
+import { Filter, Loader2, Search as SearchIcon, Sparkles } from 'lucide-react'
 import type { SkillSummary } from '@/api/types'
 import { useAuth } from '@/features/auth/use-auth'
 import { SearchBar } from '@/features/search/search-bar'
 import { SkillCard } from '@/features/skill/skill-card'
-import { ASSET_TYPE_OPTIONS, STAGE_OPTIONS, TOPOLOGY_OPTIONS } from '@/shared/lib/catalog'
+import { ASSET_TYPE_OPTIONS, STAGE_OPTIONS, TOPOLOGY_OPTIONS, getCatalogOptionLabel } from '@/shared/lib/catalog'
 import { SkeletonList } from '@/shared/components/skeleton-loader'
 import { EmptyState } from '@/shared/components/empty-state'
 import { Pagination } from '@/shared/components/pagination'
@@ -14,6 +14,7 @@ import { useSearchSkills } from '@/shared/hooks/use-skill-queries'
 import { useVisibleLabels } from '@/shared/hooks/use-label-queries'
 import { useMyStars } from '@/shared/hooks/use-user-queries'
 import { normalizeSearchQuery } from '@/shared/lib/search-query'
+import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, normalizeSelectValue } from '@/shared/ui/select'
@@ -311,202 +312,288 @@ export function SearchPage() {
   const isPageLoading = starredOnly ? isLoadingStarred : isLoading
   const isUpdatingResults = starredOnly ? isFetchingStarred && !isLoadingStarred : isFetching && !isLoading
   const resultCount = starredOnly ? filteredStarredSkills.length : (data?.total ?? 0)
+  const activeFilters = [
+    assetType ? `资产类型 · ${getCatalogOptionLabel(ASSET_TYPE_OPTIONS, assetType) ?? assetType}` : null,
+    stage ? `阶段 · ${getCatalogOptionLabel(STAGE_OPTIONS, stage) ?? stage}` : null,
+    topology ? `拓扑 · ${getCatalogOptionLabel(TOPOLOGY_OPTIONS, topology) ?? topology}` : null,
+    domain ? `业务域 · ${domain}` : null,
+    stack ? `技术栈 · ${stack}` : null,
+    selectedLabel ? `标签 · ${labels?.find((item) => item.slug === selectedLabel)?.displayName ?? selectedLabel}` : null,
+    starredOnly ? '仅看收藏' : null,
+  ].filter(Boolean) as string[]
+
+  const handleResetFilters = () => {
+    setDomainInput('')
+    setStackInput('')
+    setQueryInput('')
+    navigate({
+      to: '/search',
+      search: {
+        q: '',
+        sort: 'recommended',
+        page: 0,
+        starredOnly: false,
+      },
+    })
+  }
 
   return (
     <div className={APP_SHELL_PAGE_CLASS_NAME}>
-      {/* Search Bar */}
-      <div className="max-w-3xl mx-auto">
-        <SearchBar
-          value={queryInput}
-          isSearching={isUpdatingResults}
-          onChange={setQueryInput}
-          onSearch={handleSearch}
-        />
-      </div>
-
-      {/* Sort And Filters */}
-      <div className="space-y-5">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-muted-foreground">{t('search.sort.label')}</span>
-            <div className="flex gap-2">
-              <Button
-                variant={sort === 'relevance' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleSortChange('relevance')}
-              >
-                {t('search.sort.relevance')}
-              </Button>
-              <Button
-                variant={sort === 'downloads' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleSortChange('downloads')}
-              >
-                {t('search.sort.downloads')}
-              </Button>
-              <Button
-                variant={sort === 'newest' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleSortChange('newest')}
-              >
-                {t('search.sort.newest')}
-              </Button>
-              <Button
-                variant={sort === 'recommended' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleSortChange('recommended')}
-              >
-                推荐
-              </Button>
+      <section className="enterprise-panel enterprise-surface-stripe p-8">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white">
+              <SearchIcon className="h-3.5 w-3.5" />
+              Enterprise Marketplace
+            </div>
+            <div className="space-y-3">
+              <h1 className="text-4xl font-bold text-slate-950">技能广场</h1>
+              <p className="max-w-2xl text-base leading-7 text-slate-600">
+                通过资产类型、业务域、阶段、拓扑和标签筛选企业内部的 Agent 能力，快速找到适合当前项目的脚手架、业务包和治理组件。
+              </p>
             </div>
           </div>
-
-          {resultCount > 0 && (
-            <div className="text-sm text-muted-foreground">
-              {t('search.results', { count: resultCount })}
+          <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px]">
+            <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-4">
+              <div className="text-sm text-slate-500">当前结果</div>
+              <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{resultCount}</div>
+              <div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-400">visible assets</div>
             </div>
-          )}
-        </div>
-
-        {isUpdatingResults ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>{t('search.loadingMore')}</span>
-          </div>
-        ) : null}
-
-        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/60 bg-white/80 p-4 md:grid-cols-5">
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">资产类型</span>
-            <Select
-              value={normalizeSelectValue(assetType) ?? EMPTY_SELECT_VALUE}
-              onValueChange={(value) => handleFilterChange({ assetType: value === EMPTY_SELECT_VALUE ? '' : value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={EMPTY_SELECT_VALUE}>全部资产</SelectItem>
-                {ASSET_TYPE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">适用阶段</span>
-            <Select
-              value={normalizeSelectValue(stage) ?? EMPTY_SELECT_VALUE}
-              onValueChange={(value) => handleFilterChange({ stage: value === EMPTY_SELECT_VALUE ? '' : value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={EMPTY_SELECT_VALUE}>全部阶段</SelectItem>
-                {STAGE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">技术拓扑</span>
-            <Select
-              value={normalizeSelectValue(topology) ?? EMPTY_SELECT_VALUE}
-              onValueChange={(value) => handleFilterChange({ topology: value === EMPTY_SELECT_VALUE ? '' : value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={EMPTY_SELECT_VALUE}>全部拓扑</SelectItem>
-                {TOPOLOGY_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">业务域</span>
-            <Input
-              value={domainInput}
-              onChange={(event) => setDomainInput(event.target.value)}
-              placeholder="order / payment"
-            />
-          </div>
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">技术栈</span>
-            <Input
-              value={stackInput}
-              onChange={(event) => setStackInput(event.target.value)}
-              placeholder="spring-boot3"
-            />
+            <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-4">
+              <div className="text-sm text-slate-500">排序模式</div>
+              <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+                {sort === 'recommended' ? '推荐' : sort === 'downloads' ? '下载' : sort === 'relevance' ? '相关' : '最新'}
+              </div>
+              <div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-400">ranking</div>
+            </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-sm font-medium text-muted-foreground">{t('search.filters.label')}</span>
-          <Button
-            variant={starredOnly ? 'default' : 'outline'}
-            size="sm"
-            onClick={handleStarredToggle}
-          >
-            {t('search.filterStarred')}
-          </Button>
-          {!starredOnly && labels?.map((label) => (
-            <Button
-              key={label.slug}
-              variant={selectedLabel === label.slug ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleLabelToggle(label.slug)}
-            >
-              {label.displayName}
-            </Button>
-          ))}
+        <div className="mt-6 max-w-4xl">
+          <SearchBar
+            value={queryInput}
+            isSearching={isUpdatingResults}
+            onChange={setQueryInput}
+            onSearch={handleSearch}
+          />
         </div>
-      </div>
+      </section>
 
-      {/* Results */}
-      {isPageLoading ? (
-        <SkeletonList count={PAGE_SIZE} />
-      ) : displayItems.length > 0 ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {displayItems.map((skill, idx) => (
-              <div key={skill.id} className={`h-full animate-fade-up delay-${Math.min(idx % 6 + 1, 6)}`}>
-                <SkillCard
-                  skill={skill}
-                  highlightStarred
-                  onClick={() => handleSkillClick(skill.namespace, skill.slug)}
+      <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="space-y-6">
+          <div className="enterprise-panel p-5">
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <Filter className="h-4 w-4 text-primary" />
+                条件筛选
+              </div>
+              <button type="button" onClick={handleResetFilters} className="text-xs font-medium text-slate-500 transition-colors hover:text-slate-900">
+                重置
+              </button>
+            </div>
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">资产类型</span>
+                <Select
+                  value={normalizeSelectValue(assetType) ?? EMPTY_SELECT_VALUE}
+                  onValueChange={(value) => handleFilterChange({ assetType: value === EMPTY_SELECT_VALUE ? '' : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={EMPTY_SELECT_VALUE}>全部资产</SelectItem>
+                    {ASSET_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">适用阶段</span>
+                <Select
+                  value={normalizeSelectValue(stage) ?? EMPTY_SELECT_VALUE}
+                  onValueChange={(value) => handleFilterChange({ stage: value === EMPTY_SELECT_VALUE ? '' : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={EMPTY_SELECT_VALUE}>全部阶段</SelectItem>
+                    {STAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">技术拓扑</span>
+                <Select
+                  value={normalizeSelectValue(topology) ?? EMPTY_SELECT_VALUE}
+                  onValueChange={(value) => handleFilterChange({ topology: value === EMPTY_SELECT_VALUE ? '' : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={EMPTY_SELECT_VALUE}>全部拓扑</SelectItem>
+                    {TOPOLOGY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">业务域</span>
+                <Input
+                  value={domainInput}
+                  onChange={(event) => setDomainInput(event.target.value)}
+                  placeholder="order / payment"
                 />
               </div>
-            ))}
+              <div className="space-y-2">
+                <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">技术栈</span>
+                <Input
+                  value={stackInput}
+                  onChange={(event) => setStackInput(event.target.value)}
+                  placeholder="spring-boot3 / maven"
+                />
+              </div>
+              <div className="space-y-3">
+                <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">快捷筛选</span>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={starredOnly ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={handleStarredToggle}
+                  >
+                    {t('search.filterStarred')}
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
-          {totalPages > 1 && (
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
+
+          <div className="enterprise-panel p-5">
+            <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <Sparkles className="h-4 w-4 text-primary" />
+              推荐标签
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {!starredOnly && labels?.map((label) => (
+                <Button
+                  key={label.slug}
+                  variant={selectedLabel === label.slug ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleLabelToggle(label.slug)}
+                >
+                  {label.displayName}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        <div className="space-y-6">
+          <div className="enterprise-panel p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">{t('search.sort.label')}</span>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={sort === 'relevance' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleSortChange('relevance')}
+                  >
+                    {t('search.sort.relevance')}
+                  </Button>
+                  <Button
+                    variant={sort === 'downloads' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleSortChange('downloads')}
+                  >
+                    {t('search.sort.downloads')}
+                  </Button>
+                  <Button
+                    variant={sort === 'newest' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleSortChange('newest')}
+                  >
+                    {t('search.sort.newest')}
+                  </Button>
+                  <Button
+                    variant={sort === 'recommended' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleSortChange('recommended')}
+                  >
+                    推荐
+                  </Button>
+                </div>
+              </div>
+
+              <div className="text-sm text-muted-foreground">
+                {resultCount > 0 ? t('search.results', { count: resultCount }) : '当前筛选下暂无结果'}
+              </div>
+            </div>
+
+            {activeFilters.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {activeFilters.map((filter) => (
+                  <span key={filter} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                    {filter}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            {isUpdatingResults ? (
+              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>{t('search.loadingMore')}</span>
+              </div>
+            ) : null}
+          </div>
+
+          {isPageLoading ? (
+            <SkeletonList count={PAGE_SIZE} />
+          ) : displayItems.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
+                {displayItems.map((skill, idx) => (
+                  <div key={skill.id} className={cn('h-full animate-fade-up', `delay-${Math.min(idx % 6 + 1, 6)}`)}>
+                    <SkillCard
+                      skill={skill}
+                      highlightStarred
+                      onClick={() => handleSkillClick(skill.namespace, skill.slug)}
+                    />
+                  </div>
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              )}
+            </>
+          ) : (
+            <EmptyState
+              title={starredOnly ? t('search.noStarredResults') : t('search.noResults')}
+              description={
+                starredOnly
+                  ? (q ? t('search.noStarredResultsFor', { q }) : t('search.noStarredSkills'))
+                  : (q ? t('search.noResultsFor', { q }) : undefined)
+              }
             />
           )}
-        </>
-      ) : (
-        <EmptyState
-          title={starredOnly ? t('search.noStarredResults') : t('search.noResults')}
-          description={
-            starredOnly
-              ? (q ? t('search.noStarredResultsFor', { q }) : t('search.noStarredSkills'))
-              : (q ? t('search.noResultsFor', { q }) : undefined)
-          }
-        />
-      )}
+        </div>
+      </div>
     </div>
   )
 }

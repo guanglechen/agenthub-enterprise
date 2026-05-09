@@ -96,6 +96,10 @@ skillhub:
   auth:
     mock:
       enabled: ${SKILLHUB_AUTH_MOCK_ENABLED:false}
+    open-access:
+      enabled: ${SKILLHUB_AUTH_OPEN_ACCESS_ENABLED:false}
+      user-id: ${SKILLHUB_AUTH_OPEN_ACCESS_USER_ID:${BOOTSTRAP_ADMIN_USER_ID:docker-admin}}
+      provider-code: ${SKILLHUB_AUTH_OPEN_ACCESS_PROVIDER_CODE:open-access}
     direct:
       enabled: ${SKILLHUB_AUTH_DIRECT_ENABLED:false}
     session-bootstrap:

@@ -30,6 +30,20 @@ vi.mock('@/shared/hooks/use-user-queries', () => ({
   }),
 }))
 
+vi.mock('@/shared/hooks/use-namespace-queries', () => ({
+  useMyNamespaces: () => ({
+    data: [],
+    isLoading: false,
+  }),
+}))
+
+vi.mock('@/shared/hooks/use-skill-queries', () => ({
+  useSearchSkills: () => ({
+    data: { items: [] },
+    isLoading: false,
+  }),
+}))
+
 vi.mock('@/shared/lib/governance-access', () => ({
   canViewGovernanceCenter: () => false,
 }))
@@ -66,7 +80,7 @@ describe('DashboardPage', () => {
     const html = renderToStaticMarkup(<DashboardPage />)
 
     expect(html).toContain('dashboard.title')
-    expect(html).toContain('dashboard.userInfo')
+    expect(html).toContain('发布新 Skill')
   })
 
   it('shows the my-skills preview section', () => {

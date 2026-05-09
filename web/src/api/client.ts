@@ -58,6 +58,7 @@ export const WEB_API_PREFIX = '/api/web'
 type RuntimeConfig = {
   apiBaseUrl?: string
   appBaseUrl?: string
+  authOpenAccessEnabled?: string
   authDirectEnabled?: string
   authDirectProvider?: string
   authSessionBootstrapEnabled?: string
@@ -142,6 +143,10 @@ export type SessionBootstrapRuntimeConfig = {
 export type DirectAuthRuntimeConfig = {
   enabled: boolean
   provider?: string
+}
+
+export function isOpenAccessRuntimeEnabled(): boolean {
+  return parseBooleanFlag(getRuntimeConfig().authOpenAccessEnabled)
 }
 
 export function getDirectAuthRuntimeConfig(): DirectAuthRuntimeConfig {

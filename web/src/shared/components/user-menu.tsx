@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { authApi } from '@/api/client'
+import { authApi, isOpenAccessRuntimeEnabled } from '@/api/client'
 import { useMyNamespaces } from '@/shared/hooks/use-namespace-queries'
 import { buildGlobalReviewsPath, canAccessReviewCenter } from '@/features/review/review-paths'
 import { clearSessionScopedQueries } from '@/features/notification/notification-session'
@@ -37,7 +37,8 @@ export function UserMenu({ user, triggerClassName }: UserMenuProps) {
   const isAuditor = hasRole('AUDITOR') || hasRole('SUPER_ADMIN')
   const isSuperAdmin = hasRole('SUPER_ADMIN')
   const reviewCenterVisible = canAccessReviewCenter(user.platformRoles, myNamespaces)
-  const isLocalAccount = !user.oauthProvider
+  const openAccessEnabled = isOpenAccessRuntimeEnabled() || user.oauthProvider === 'open-access'
+  const isLocalAccount = !user.oauthProvider && !openAccessEnabled
   const open = isHovered || isClickOpen
 
   const clearCloseTimer = () => {
@@ -205,14 +206,18 @@ export function UserMenu({ user, triggerClassName }: UserMenuProps) {
                 {t('user.menu.security')}
               </Link>
             ) : null}
-            <div className="-mx-1 my-1 h-px bg-muted" />
-            <button
-              type="button"
-              onClick={handleLogout}
-              className={cn(menuItemClassName, 'text-destructive')}
-            >
-              {t('user.menu.logout')}
-            </button>
+            {openAccessEnabled ? null : (
+              <>
+                <div className="-mx-1 my-1 h-px bg-muted" />
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className={cn(menuItemClassName, 'text-destructive')}
+                >
+                  {t('user.menu.logout')}
+                </button>
+              </>
+            )}
           </div>
         </div>
       ) : null}
