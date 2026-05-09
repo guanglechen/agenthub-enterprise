@@ -2,6 +2,7 @@
   "name": "skillhub-web",
   "private": true,
   "version": "0.1.0",
+  "packageManager": "pnpm@10.7.0",
   "type": "module",
   "scripts": {
     "install:ci": "pnpm install --frozen-lockfile",
