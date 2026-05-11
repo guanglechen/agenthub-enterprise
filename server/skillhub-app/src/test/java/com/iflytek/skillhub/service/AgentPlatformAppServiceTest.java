@@ -128,5 +128,8 @@ class AgentPlatformAppServiceTest {
                 .containsExactly("payment-integration");
         assertThat(response.nextActions()).isNotEmpty();
         assertThat(response.platform().platformName()).isEqualTo("agenthub-enterprise");
+        assertThat(response.platform().capabilities()).containsEntry("claudeCodeMarketplace", true);
+        assertThat(response.platform().recommendedEntrypoints())
+                .contains("agenthub-cli marketplace validate --file .claude-plugin/marketplace.json --json");
     }
 }

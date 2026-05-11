@@ -2,7 +2,9 @@ package com.iflytek.skillhub.controller;
 
 import com.iflytek.skillhub.dto.AgentInstallPlanRequest;
 import com.iflytek.skillhub.dto.AgentInstallPlanResponse;
+import com.iflytek.skillhub.dto.AgentInstallPlanCommandResponse;
 import com.iflytek.skillhub.dto.AgentInstallPlanSkillResponse;
+import com.iflytek.skillhub.dto.AgentPlatformAuthResponse;
 import com.iflytek.skillhub.dto.AgentPlatformBundleResponse;
 import com.iflytek.skillhub.dto.AgentPlatformProfileResponse;
 import com.iflytek.skillhub.dto.AgentWorkspaceContextResponse;
@@ -42,6 +44,7 @@ class AgentPlatformControllerTest {
                 "agenthub-enterprise",
                 "AgentHub Enterprise",
                 "Enterprise asset center",
+                Map.of("harness", true, "claudeCodeMarketplace", true),
                 List.of("microservice", "quality"),
                 List.of("bootstrap", "develop"),
                 List.of("crud-api", "bff"),
@@ -54,15 +57,21 @@ class AgentPlatformControllerTest {
                         List.of("develop"),
                         List.of("crud-api")
                 )),
-                List.of("connect first")
+                List.of("connect first"),
+                List.of("agenthub-cli marketplace validate --file .claude-plugin/marketplace.json --json"),
+                new AgentPlatformAuthResponse("provided-by-user-or-ci", "set AGENTHUB_TOKEN")
         ));
 
         mockMvc.perform(get("/api/v1/agent/profile"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.platformName").value("agenthub-enterprise"))
+                .andExpect(jsonPath("$.data.capabilities.harness").value(true))
+                .andExpect(jsonPath("$.data.capabilities.claudeCodeMarketplace").value(true))
                 .andExpect(jsonPath("$.data.defaultBundles[0].bundleId").value("java-microservice-baseline"))
-                .andExpect(jsonPath("$.data.onboardingSteps[0]").value("connect first"));
+                .andExpect(jsonPath("$.data.onboardingSteps[0]").value("connect first"))
+                .andExpect(jsonPath("$.data.recommendedEntrypoints[0]").value("agenthub-cli marketplace validate --file .claude-plugin/marketplace.json --json"))
+                .andExpect(jsonPath("$.data.auth.tokenMode").value("provided-by-user-or-ci"));
     }
 
     @Test
@@ -73,12 +82,15 @@ class AgentPlatformControllerTest {
                                 "agenthub-enterprise",
                                 "AgentHub Enterprise",
                                 "Enterprise asset center",
+                                Map.of("harness", true),
                                 List.of("microservice"),
                                 List.of("develop"),
                                 List.of("bff"),
                                 List.of("install-required-skills"),
                                 List.of(),
-                                List.of("call profile")
+                                List.of("call profile"),
+                                List.of("agenthub-cli harness browse --json"),
+                                new AgentPlatformAuthResponse("provided-by-user-or-ci", "set AGENTHUB_TOKEN")
                         ),
                         new AgentWorkspaceContextResponse(
                                 "payments",
@@ -117,7 +129,12 @@ class AgentPlatformControllerTest {
                                 "/api/v1/skills/team-ai/payment-base/download",
                                 "team-ai--payment-base"
                         )),
-                        List.of("install required skills")
+                        List.of("install required skills"),
+                        List.of(new AgentInstallPlanCommandResponse(
+                                "agenthub-cli harness browse --stack spring-boot3,maven --topology bff --json",
+                                "discover-harness-packages",
+                                true
+                        ))
                 ));
 
         mockMvc.perform(post("/api/v1/agent/install-plan")
@@ -142,6 +159,7 @@ class AgentPlatformControllerTest {
                 .andExpect(jsonPath("$.data.workspaceContext.assetType").value("microservice"))
                 .andExpect(jsonPath("$.data.requiredSkills[0].slug").value("payment-service"))
                 .andExpect(jsonPath("$.data.recommendedSkills[0].slug").value("payment-base"))
-                .andExpect(jsonPath("$.data.nextActions[0]").value("install required skills"));
+                .andExpect(jsonPath("$.data.nextActions[0]").value("install required skills"))
+                .andExpect(jsonPath("$.data.commands[0].reason").value("discover-harness-packages"));
     }
 }

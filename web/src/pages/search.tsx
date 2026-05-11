@@ -19,6 +19,8 @@ import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, normalizeSelectValue } from '@/shared/ui/select'
 import { APP_SHELL_PAGE_CLASS_NAME } from '@/app/page-shell-style'
+import { AgentDiscoveryPanel } from '@/shared/components/agent-discovery-panel'
+import { ASSET_FAMILY_OPTIONS } from '@/shared/lib/asset-taxonomy'
 
 const PAGE_SIZE = 12
 const EMPTY_SELECT_VALUE = '__all__'
@@ -88,7 +90,7 @@ export function SearchPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const searchParams = useSearch({ from: '/search' })
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading: isAuthLoading, isFetching: isAuthFetching } = useAuth()
 
   const q = normalizeSearchQuery(searchParams.q || '')
   const selectedLabel = searchParams.label || ''
@@ -167,7 +169,7 @@ export function SearchPage() {
     page,
     size: PAGE_SIZE,
     starredOnly,
-  })
+  }, !isAuthLoading && !isAuthFetching)
   const { data: labels } = useVisibleLabels()
   const {
     data: starredSkills,
@@ -279,6 +281,28 @@ export function SearchPage() {
     })
   }
 
+  const handleAssetFamilySelect = (family: (typeof ASSET_FAMILY_OPTIONS)[number]) => {
+    setQueryInput(family.search.q ?? '')
+    setDomainInput('')
+    setStackInput(family.search.stack ?? '')
+    navigate({
+      to: '/search',
+      search: {
+        ...buildSearchState({
+          q: family.search.q ?? '',
+          label: family.search.label ?? '',
+          assetType: family.search.assetType ?? '',
+          stage: family.search.stage ?? '',
+          topology: family.search.topology ?? '',
+          stack: family.search.stack ?? '',
+          sort: family.search.sort ?? 'recommended',
+          page: 0,
+          starredOnly: false,
+        }),
+      },
+    })
+  }
+
   const handleStarredToggle = () => {
     if (!isAuthenticated) {
       navigate({
@@ -375,6 +399,34 @@ export function SearchPage() {
             onChange={setQueryInput}
             onSearch={handleSearch}
           />
+        </div>
+      </section>
+
+      <AgentDiscoveryPanel compact />
+
+      <section className="enterprise-panel p-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">Asset families</div>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">按资产族和使用场景发现</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              平台内容不只是单一 Skill。插件、Agent Skill、产品知识、业务知识、开发工具和 Harness Package 都通过 Skill 市场统一分发。
+            </p>
+          </div>
+          <div className="text-sm text-slate-500">点击卡片会组合现有搜索筛选，不引入新的破坏性协议。</div>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+          {ASSET_FAMILY_OPTIONS.map((family) => (
+            <button
+              key={family.id}
+              type="button"
+              onClick={() => handleAssetFamilySelect(family)}
+              className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2"
+            >
+              <div className="text-sm font-semibold text-slate-950">{family.title}</div>
+              <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{family.description}</p>
+            </button>
+          ))}
         </div>
       </section>
 

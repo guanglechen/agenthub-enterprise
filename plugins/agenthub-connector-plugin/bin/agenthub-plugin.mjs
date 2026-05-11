@@ -71,7 +71,7 @@ function resolveCliBinary(config) {
   if (baseUrl) {
     return {
       command: 'npx',
-      prefixArgs: ['-y', '--package', `${String(baseUrl).replace(/\/$/, '')}/downloads/agenthub-cli-0.1.1.tgz`, 'agenthub-cli'],
+      prefixArgs: ['-y', '--package', `${String(baseUrl).replace(/\/$/, '')}/downloads/agenthub-cli-0.1.3.tgz`, 'agenthub-cli'],
     }
   }
   return { command: 'npx', prefixArgs: ['-y', '--package', '@guanglechen/agenthub-cli', 'agenthub-cli'] }
@@ -205,6 +205,23 @@ function installSkill(skillCoordinate, targetDir, config) {
   return installed
 }
 
+function appendIfPresent(args, flag, value) {
+  if (value !== undefined && value !== null && value !== '') {
+    args.push(flag, String(value))
+  }
+}
+
+function runHarnessCommand(subcommand, workspace, options, config, extraArgs = []) {
+  const args = ['harness', subcommand, '--dir', workspace, ...extraArgs]
+  for (const key of ['domain', 'assetType', 'stage', 'topology', 'stack', 'namespace', 'q', 'label']) {
+    appendIfPresent(args, `--${key}`, options[key] || config[key])
+  }
+  if (options.json !== false) {
+    args.push('--json')
+  }
+  return JSON.parse(runCli(args, config))
+}
+
 function printHelp() {
   process.stdout.write(`agenthub-connector-plugin commands:
   profile [--json]
@@ -212,6 +229,12 @@ function printHelp() {
   install-plan [--context-file context.json | --workspace <dir>] [--json]
   install-skill --skill @namespace/slug [--target .claude/skills]
   apply-install-plan [--context-file context.json | --workspace <dir>] [--mode required|all] [--target .claude/skills] [--json]
+  harness-browse [--workspace <dir>] [--stack java21,spring-boot3] [--json]
+  harness-scan [--workspace <dir>] [--json]
+  harness-verify [--workspace <dir>] [--json]
+  harness-init --skill @namespace/slug [--workspace <dir>] [--yes] [--json]
+  harness-propose [--workspace <dir>] [--json]
+  harness-contribute --name <name> [--workspace <dir>] [--dry-run] [--json]
 `)
 }
 
@@ -282,6 +305,60 @@ async function main() {
       } finally {
         fs.rmSync(temp.tempDir, { recursive: true, force: true })
       }
+      return
+    }
+    case 'harness-browse': {
+      const args = ['harness', 'browse']
+      for (const key of ['domain', 'assetType', 'stage', 'topology', 'stack', 'namespace', 'q', 'label']) {
+        appendIfPresent(args, `--${key}`, options[key] || config[key])
+      }
+      args.push('--json')
+      printJson(JSON.parse(runCli(args, config)))
+      return
+    }
+    case 'harness-scan': {
+      printJson(runHarnessCommand('scan-modules', workspace, options, config))
+      return
+    }
+    case 'harness-verify': {
+      printJson(runHarnessCommand('verify', workspace, options, config))
+      return
+    }
+    case 'harness-init': {
+      const skill = options.skill || options.package
+      const args = ['harness', 'init', '--dir', workspace]
+      if (skill) {
+        args.push('--package', String(skill))
+      }
+      if (options['package-dir']) {
+        args.push('--package-dir', path.resolve(String(options['package-dir'])))
+      }
+      if (options.inputs) {
+        args.push('--inputs', path.resolve(String(options.inputs)))
+      }
+      if (options.yes === true || options.yes === 'true') {
+        args.push('--yes')
+      }
+      args.push('--json')
+      printJson(JSON.parse(runCli(args, config)))
+      return
+    }
+    case 'harness-propose': {
+      printJson(runHarnessCommand('propose', workspace, options, config))
+      return
+    }
+    case 'harness-contribute': {
+      if (!options.name) {
+        fail('harness-contribute requires --name')
+      }
+      const args = ['harness', 'contribute', '--dir', workspace, '--name', String(options.name), '--json']
+      for (const key of ['domain', 'assetType', 'stage', 'topology', 'stack', 'namespace', 'ownerTeam', 'keywords', 'out']) {
+        appendIfPresent(args, `--${key}`, options[key] || config[key])
+      }
+      if (options['dry-run'] !== false) {
+        args.push('--dry-run')
+      }
+      printJson(JSON.parse(runCli(args, config)))
       return
     }
     default:

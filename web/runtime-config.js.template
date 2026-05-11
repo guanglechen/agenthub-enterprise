@@ -6,5 +6,11 @@ window.__SKILLHUB_RUNTIME_CONFIG__ = {
   authDirectProvider: "${SKILLHUB_WEB_AUTH_DIRECT_PROVIDER}",
   authSessionBootstrapEnabled: "${SKILLHUB_WEB_AUTH_SESSION_BOOTSTRAP_ENABLED}",
   authSessionBootstrapProvider: "${SKILLHUB_WEB_AUTH_SESSION_BOOTSTRAP_PROVIDER}",
-  authSessionBootstrapAuto: "${SKILLHUB_WEB_AUTH_SESSION_BOOTSTRAP_AUTO}"
+  authSessionBootstrapAuto: "${SKILLHUB_WEB_AUTH_SESSION_BOOTSTRAP_AUTO}",
+  brandName: "${SKILLHUB_WEB_BRAND_NAME}",
+  brandOrgName: "${SKILLHUB_WEB_BRAND_ORG_NAME}",
+  brandLogoUrl: "${SKILLHUB_WEB_BRAND_LOGO_URL}",
+  brandTagline: "${SKILLHUB_WEB_BRAND_TAGLINE}",
+  brandPrimaryColor: "${SKILLHUB_WEB_BRAND_PRIMARY_COLOR}",
+  brandAccentColor: "${SKILLHUB_WEB_BRAND_ACCENT_COLOR}"
 };

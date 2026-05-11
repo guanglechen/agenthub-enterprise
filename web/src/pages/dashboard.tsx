@@ -13,6 +13,8 @@ import { TokenList } from '@/features/token/token-list'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
 import { APP_SHELL_PAGE_CLASS_NAME } from '@/app/page-shell-style'
 import { AgenthubOnboardingGuide } from '@/shared/components/agenthub-onboarding-guide'
+import { AgentDiscoveryPanel } from '@/shared/components/agent-discovery-panel'
+import { ASSET_FAMILY_OPTIONS } from '@/shared/lib/asset-taxonomy'
 import { limitPreviewItems } from './dashboard-preview'
 
 const DASHBOARD_PREVIEW_LIMIT = 5
@@ -154,6 +156,50 @@ export function DashboardPage() {
           </div>
         </section>
       </div>
+
+      <AgentDiscoveryPanel />
+
+      <section className="enterprise-panel p-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">Skill market taxonomy</div>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">平台资产族</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              所有内容仍以 Skill 包分发，但页面按插件、知识、工具、业务能力和 Harness 场景组织，方便人和 Agent 快速判断该安装什么。
+            </p>
+          </div>
+          <Link
+            to="/search"
+            search={{ q: '', sort: 'recommended', page: 0, starredOnly: false }}
+            className="text-sm font-semibold text-primary hover:underline"
+          >
+            进入技能广场
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+          {ASSET_FAMILY_OPTIONS.map((family) => (
+            <Link
+              key={family.id}
+              to="/search"
+              search={{
+                q: family.search.q ?? '',
+                assetType: family.search.assetType,
+                stage: family.search.stage,
+                topology: family.search.topology,
+                stack: family.search.stack,
+                label: family.search.label,
+                sort: family.search.sort ?? 'recommended',
+                page: 0,
+                starredOnly: false,
+              }}
+              className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm"
+            >
+              <div className="text-sm font-semibold text-slate-950">{family.title}</div>
+              <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{family.description}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {workspaceStats.map((item) => (

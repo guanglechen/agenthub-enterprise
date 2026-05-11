@@ -3,7 +3,9 @@ package com.iflytek.skillhub.service;
 import com.iflytek.skillhub.domain.namespace.NamespaceRole;
 import com.iflytek.skillhub.dto.AgentInstallPlanRequest;
 import com.iflytek.skillhub.dto.AgentInstallPlanResponse;
+import com.iflytek.skillhub.dto.AgentInstallPlanCommandResponse;
 import com.iflytek.skillhub.dto.AgentInstallPlanSkillResponse;
+import com.iflytek.skillhub.dto.AgentPlatformAuthResponse;
 import com.iflytek.skillhub.dto.AgentPlatformBundleResponse;
 import com.iflytek.skillhub.dto.AgentPlatformProfileResponse;
 import com.iflytek.skillhub.dto.AgentWorkspaceContextResponse;
@@ -15,7 +17,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +25,15 @@ public class AgentPlatformAppService {
     private static final AgentPlatformProfileResponse PLATFORM_PROFILE = new AgentPlatformProfileResponse(
             "agenthub-enterprise",
             "AgentHub Enterprise",
-            "Enterprise AI development asset center for product blueprints, scaffolds, microservice skills, quality gates, and platform integrations.",
+            "Private enterprise Skill market and development asset hub. Harness is an optional Java microservice capability layer delivered as special skill packages.",
+            Map.of(
+                    "skillMarket", true,
+                    "catalogProfile", true,
+                    "harness", true,
+                    "installPlan", true,
+                    "openAccessRead", true,
+                    "claudeCodeMarketplace", true
+            ),
             List.of("product", "scaffold", "business", "microservice", "quality", "integration"),
             List.of("discover", "bootstrap", "develop", "test", "release", "operate"),
             List.of("crud-api", "bff", "event-consumer", "batch", "shared-lib"),
@@ -32,6 +41,8 @@ public class AgentPlatformAppService {
                     "connect-platform",
                     "discover-assets",
                     "install-required-skills",
+                    "use-harness-package",
+                    "install-claude-code-plugin",
                     "run-quality-baseline"
             ),
             List.of(
@@ -53,9 +64,25 @@ public class AgentPlatformAppService {
                     )
             ),
             List.of(
+                    "If the user only gives you the base URL, read /llms.txt and /.well-known/agenthub.json first.",
                     "Call /api/v1/agent/profile first so the agent understands the platform purpose and default workflows.",
+                    "Use /registry/claude-marketplace.json to discover Claude Code plugin distribution metadata.",
                     "Build an install plan from workspace context before searching assets ad hoc.",
-                    "Install required skills into .claude/skills, then review recommended skills before opening a PR."
+                    "Install required skills into .claude/skills, then use agenthub-cli harness commands when the workspace is Java/Spring Boot.",
+                    "Tokens are provided by the user, CI, or runtime environment. Agents should not auto-apply for tokens."
+            ),
+            List.of(
+                    "curl -fsS <base-url>/llms.txt",
+                    "curl -fsS <base-url>/.well-known/agenthub.json",
+                    "agenthub-cli agent profile --json",
+                    "agenthub-cli agent install-plan --json",
+                    "agenthub-cli marketplace validate --file .claude-plugin/marketplace.json --json",
+                    "agenthub-cli harness browse --json",
+                    "agenthub-cli harness verify --json"
+            ),
+            new AgentPlatformAuthResponse(
+                    "provided-by-user-or-ci",
+                    "Set AGENTHUB_TOKEN or pass --token. Agents should not auto-apply for tokens."
             )
     );
 
@@ -123,7 +150,8 @@ public class AgentPlatformAppService {
                 context,
                 List.copyOf(requiredSkills),
                 List.copyOf(recommendedSkills),
-                buildNextActions(context, requiredSkills, recommendedSkills)
+                buildNextActions(context, requiredSkills, recommendedSkills),
+                buildCommands(context, requiredSkills, recommendedSkills)
         );
     }
 
@@ -217,6 +245,90 @@ public class AgentPlatformAppService {
             actions.add("Because this workspace is marked as newProject=true, start with scaffold and quality assets before adding domain-specific skills.");
         }
         return actions;
+    }
+
+    private List<AgentInstallPlanCommandResponse> buildCommands(AgentWorkspaceContextResponse context,
+                                                                List<AgentInstallPlanSkillResponse> requiredSkills,
+                                                                List<AgentInstallPlanSkillResponse> recommendedSkills) {
+        List<AgentInstallPlanCommandResponse> commands = new ArrayList<>();
+        commands.add(new AgentInstallPlanCommandResponse(
+                "agenthub-cli agent profile --json",
+                "read-platform-profile",
+                true
+        ));
+
+        for (AgentInstallPlanSkillResponse skill : requiredSkills) {
+            commands.add(new AgentInstallPlanCommandResponse(
+                    "agenthub-cli install --skill @" + skill.namespace() + "/" + skill.slug() + " --target .claude/skills --force --json",
+                    "install-required-skill",
+                    true
+            ));
+        }
+
+        if (isJavaHarnessContext(context)) {
+            String stack = String.join(",", context.stack());
+            String stackArgument = stack.isBlank() ? "" : " --stack " + stack;
+            commands.add(new AgentInstallPlanCommandResponse(
+                    "agenthub-cli harness browse" + stackArgument + " --topology " + context.topology() + " --json",
+                    "discover-harness-packages",
+                    true
+            ));
+            findHarnessSkill(requiredSkills, recommendedSkills).ifPresent(skill -> {
+                if (context.newProject()) {
+                    commands.add(new AgentInstallPlanCommandResponse(
+                            "agenthub-cli harness init --package @" + skill.namespace() + "/" + skill.slug() + " --yes",
+                            "initialize-java-service-harness",
+                            true
+                    ));
+                } else {
+                    commands.add(new AgentInstallPlanCommandResponse(
+                            "agenthub-cli harness verify --json",
+                            "verify-existing-java-service",
+                            true
+                    ));
+                }
+            });
+        }
+
+        commands.add(new AgentInstallPlanCommandResponse(
+                "agenthub-cli harness verify --json",
+                "run-local-harness-verification-when-a-harness-package-is-installed",
+                false
+        ));
+        return List.copyOf(commands);
+    }
+
+    private boolean isJavaHarnessContext(AgentWorkspaceContextResponse context) {
+        if ("java".equals(context.language())) {
+            return true;
+        }
+        if (context.framework() != null && context.framework().contains("spring")) {
+            return true;
+        }
+        return context.stack().stream().anyMatch(item -> item.startsWith("java") || item.contains("spring-boot") || item.equals("maven"));
+    }
+
+    private java.util.Optional<AgentInstallPlanSkillResponse> findHarnessSkill(List<AgentInstallPlanSkillResponse> requiredSkills,
+                                                                               List<AgentInstallPlanSkillResponse> recommendedSkills) {
+        return java.util.stream.Stream.concat(requiredSkills.stream(), recommendedSkills.stream())
+                .filter(this::isHarnessSkill)
+                .findFirst();
+    }
+
+    private boolean isHarnessSkill(AgentInstallPlanSkillResponse skill) {
+        if (skill.slug() != null && skill.slug().contains("harness")) {
+            return true;
+        }
+        if (skill.displayName() != null && skill.displayName().toLowerCase(Locale.ROOT).contains("harness")) {
+            return true;
+        }
+        if (skill.catalogProfile() == null) {
+            return false;
+        }
+        List<String> stack = skill.catalogProfile().stack() != null ? skill.catalogProfile().stack() : List.of();
+        List<String> keywords = skill.catalogProfile().keywords() != null ? skill.catalogProfile().keywords() : List.of();
+        return stack.stream().anyMatch(item -> "harness".equalsIgnoreCase(item))
+                || keywords.stream().anyMatch(item -> "harness".equalsIgnoreCase(item));
     }
 
     private List<String> normalizeList(List<String> values) {

@@ -1,0 +1,17 @@
+assetType: scaffold
+domain: platform
+stage: bootstrap
+topology: crud-api
+stack:
+  - java21
+  - spring-boot3
+  - maven
+  - harness
+ownerTeam: platform-engineering
+keywords:
+  - harness
+  - java-microservice
+  - spring-boot
+  - scaffold
+maintenanceMode: agent
+relations: []

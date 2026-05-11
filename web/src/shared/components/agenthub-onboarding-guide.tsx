@@ -162,6 +162,13 @@ export function AgenthubOnboardingGuide({ compact = false }: AgenthubOnboardingG
           <Bot className="h-4 w-4" />
           {t('onboarding.actions.openAgentDoc')}
         </a>
+        <a
+          href="/registry/claude-marketplace.json"
+          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 font-medium text-slate-700 transition-colors hover:bg-slate-50"
+        >
+          <Bot className="h-4 w-4" />
+          {t('onboarding.actions.openClaudeMarketplace')}
+        </a>
       </div>
     </section>
   )

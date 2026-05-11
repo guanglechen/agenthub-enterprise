@@ -6,6 +6,7 @@ import { useAuth } from '@/features/auth/use-auth'
 import { LanguageSwitcher } from '@/shared/components/language-switcher'
 import { UserMenu } from '@/shared/components/user-menu'
 import { NotificationBell } from '@/features/notification/notification-bell'
+import { BrandMark } from '@/shared/components/brand-mark'
 import { cn } from '@/shared/lib/utils'
 import { getAppHeaderClassName } from './layout-header-style'
 import { getAppMainContentLayout, resolveAppMainContentPathname } from './layout-main-content'
@@ -212,15 +213,7 @@ export function Layout() {
           <aside className="enterprise-sidebar-surface hidden w-[292px] shrink-0 flex-col border-r border-white/10 lg:flex">
             <div className="border-b border-white/10 px-7 py-7">
               <Link to="/" className="block">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-lg font-semibold text-white">
-                    A
-                  </div>
-                  <div>
-                    <div className="text-lg font-semibold text-white">AgentHub Enterprise</div>
-                    <div className="text-xs uppercase tracking-[0.24em] text-white/45">Private Skill Workspace</div>
-                  </div>
-                </div>
+                <BrandMark inverse />
               </Link>
             </div>
 
@@ -360,7 +353,7 @@ export function Layout() {
 
             <footer className="border-t border-slate-200/80 bg-white/72 px-5 py-4 text-xs text-slate-500 backdrop-blur sm:px-6 lg:px-10">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <span>AgentHub Enterprise · 企业 AI 开发资产中心</span>
+                <span>HIKVISION AgentHub · 海康威视内部研发资产分发平台</span>
                 <div className="flex items-center gap-2">
                   <span>Skill / Plugin / CLI / Agent</span>
                   <span className="text-slate-300">|</span>
@@ -393,8 +386,8 @@ export function Layout() {
 
       {/* Header */}
       <header className={getAppHeaderClassName(isHeaderElevated)} style={{ borderColor: 'hsl(var(--border))' }}>
-        <Link to="/" className="text-xl font-semibold tracking-tight text-brand-gradient">
-          AgentHub
+        <Link to="/" className="text-xl font-semibold tracking-tight">
+          <BrandMark compact />
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-[15px] font-normal" style={{ color: 'hsl(var(--text-secondary))' }}>
@@ -457,11 +450,8 @@ export function Layout() {
         <div className="max-w-6xl mx-auto px-6 md:px-12 py-10">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-10 md:gap-12">
             <div className="flex-shrink-0">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-sm font-bold shadow-sm bg-brand-gradient">
-                  A
-                </div>
-                <span className="text-lg font-bold text-brand-gradient">AgentHub</span>
+              <div className="mb-3">
+                <BrandMark compact />
               </div>
               <p className="text-sm max-w-xs" style={{ color: 'hsl(var(--text-secondary))' }}>
                 {t('layout.footerDescription')}

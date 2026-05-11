@@ -1,0 +1,40 @@
+apiVersion: agenthub.iflytek.com/v1alpha1
+kind: HarnessPackage
+metadata:
+  name: java-microservice-harness
+  displayName: Java Microservice Harness
+  version: 0.1.0
+  ownerTeam: platform-engineering
+  minimumAgenthubCliVersion: 0.1.2
+spec:
+  target:
+    language: java
+    framework:
+      - spring-boot3
+    buildTool:
+      - maven
+    topology:
+      - crud-api
+      - event-consumer
+      - batch
+  defaultTemplate: harness/templates/service
+  templates:
+    - id: service
+      title: Spring Boot service template
+      path: harness/templates/service
+  commands:
+    init:
+      recipe: harness/recipes/init.yaml
+    verify:
+      recipe: harness/recipes/verify.yaml
+  cells:
+    - id: rest-crud-api
+      title: REST CRUD API cell
+      path: harness/cells/rest-crud-api
+      appliesTo:
+        topology:
+          - crud-api
+  rules:
+    - id: basic-java-service
+      title: Basic Java service convention
+      path: harness/rules/basic-java-service.yaml

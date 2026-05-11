@@ -31,7 +31,7 @@
 - 企业侧通过 `catalogProfile` 这层目录画像表达业务语义，而不是新造一套完全脱离 skill 的资产模型
 - 平台面向企业内部研发，不再以公共开源技能市场为主叙事
 - Agent 的正式消费入口目前是 `CLI-first`
-- Claude Code 插件先走 **本地 path plugin** 方式验证，再考虑回传平台做正式 marketplace 分发
+- Claude Code 插件通过 **本地 path plugin + Claude marketplace 兼容出口** 两条方式验证，不替代 AgentHub Skill 市场
 
 当前平台主要围绕六类资产组织内容：
 
@@ -110,15 +110,17 @@
 
 当前平台同时提供可分发的 npm tarball：
 
-- `web/public/downloads/agenthub-cli-0.1.1.tgz`
+- `web/public/downloads/agenthub-cli-0.1.3.tgz`
 
 当前 CLI 已改为纯 Node 依赖，不再依赖 Python 解压，更适合 Claude Code 在 Windows + Node 环境下直接使用。
 
-### 3.4 本地 Claude Code 插件 MVP
+### 3.4 Claude Code 插件与 marketplace 兼容出口
 
-当前仓库已经实现了一版本地 Claude Code connector plugin，位置在：
+当前仓库已经实现 Claude Code connector plugin，位置在：
 
 - `plugins/agenthub-connector-plugin`
+- `.claude-plugin/marketplace.json`
+- 部署后 `/registry/claude-marketplace.json`
 
 这版插件已经能跑通最小闭环：
 
@@ -126,8 +128,11 @@
 2. 识别本地 workspace 上下文
 3. 请求 install plan
 4. 安装 required skills 到 `.claude/skills`
+5. 包装 Harness browse / scan / init / verify / propose / contribute
 
-当前插件不是正式 marketplace 发布版，而是 **本地 path plugin MVP**。
+Claude Code marketplace 只作为兼容分发层，用于安装 `agenthub-connector-plugin`。AgentHub 内部仍以 `skill package` 作为权威资产模型。
+
+当前 marketplace 已具备本地/Git 仓库型分发基础，但还没有做 managed settings 和组织级强制启用。
 
 ### 3.5 私有化部署与内网接入
 
@@ -136,6 +141,7 @@
 - `docs/22-enterprise-private-deployment-playbook.md`
 - `docs/21-local-claude-plugin-connector.md`
 - `docs/23-agenthub-cli-and-agent-onboarding.md`
+- `docs/26-claude-code-marketplace-compat-design.md`
 
 ## 4. 当前仓库结构
 
@@ -339,6 +345,7 @@ Agent 应该优先使用：
 - 本地 Claude Code 插件读取 profile
 - 本地 Claude Code 插件生成 install plan
 - 本地 Claude Code 插件安装 skill 到 `.claude/skills`
+- Claude Code marketplace 兼容 JSON 校验与 Web 分发入口
 
 也就是说，当前项目已经不是概念设计，而是具备了可运行的一期闭环。
 
@@ -346,7 +353,6 @@ Agent 应该优先使用：
 
 下面这些属于下一阶段：
 
-- 正式 marketplace / plugin source 分发
 - `.claude/settings.json` 自动注入
 - managed settings / `extraKnownMarketplaces`
 - plugin 依赖编排

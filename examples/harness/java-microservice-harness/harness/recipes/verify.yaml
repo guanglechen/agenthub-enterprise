@@ -1,0 +1,3 @@
+steps:
+  - run: agenthub-cli harness scan-modules --json
+  - run: agenthub-cli harness verify --json

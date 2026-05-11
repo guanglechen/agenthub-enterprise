@@ -1,0 +1,56 @@
+# AgentHub Enterprise
+
+AgentHub Enterprise is a private Skill and Agent asset market for enterprise development teams.
+
+If you are an AI Agent and only received this base URL, start here:
+
+1. Read the full machine onboarding guide:
+   ${SKILLHUB_PUBLIC_BASE_URL}/registry/skill.md
+2. Read the structured platform discovery document:
+   ${SKILLHUB_PUBLIC_BASE_URL}/.well-known/agenthub.json
+3. Read the platform profile API:
+   ${SKILLHUB_PUBLIC_BASE_URL}/api/v1/agent/profile
+4. If you are Claude Code, discover the connector plugin:
+   ${SKILLHUB_PUBLIC_BASE_URL}/registry/claude-marketplace.json
+
+What this platform is for:
+
+- search and install internal Skill packages
+- discover product, business, engineering, tool, Harness, and integration assets
+- generate Agent install plans for a local workspace
+- publish or maintain Skill packages through CLI/CI/Agent workflows
+- keep catalog profile, labels, and relations updated
+
+Human quick start:
+
+```bash
+npm install -g ${SKILLHUB_PUBLIC_BASE_URL}/downloads/agenthub-cli-0.1.3.tgz
+agenthub-cli login --base-url ${SKILLHUB_PUBLIC_BASE_URL} --token sk_your_api_token_here
+agenthub-cli search --q spring-boot --assetType scaffold --json
+```
+
+Agent quick start:
+
+```bash
+agenthub-cli agent profile --base-url ${SKILLHUB_PUBLIC_BASE_URL} --json
+agenthub-cli agent install-plan --assetType microservice --stage develop --json
+agenthub-cli search --q payment --domain payment --json
+```
+
+Token rule:
+
+- read-only discovery may work without a token in open-access deployments
+- publishing, catalog updates, labels, relations, and private/team assets require a user-provided or CI-provided token
+- Agents must not auto-apply for tokens; ask the user or read `AGENTHUB_TOKEN`
+
+Branding defaults:
+
+- `HIKVISION AgentHub`
+- `海康威视`
+- `内部研发资产分发平台`
+
+Canonical Skill coordinate:
+
+```text
+@namespace/skill-slug
+```

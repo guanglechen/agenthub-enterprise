@@ -11,6 +11,8 @@ RUN pnpm build
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY --from=build /app/src/docs/skill.md.template /usr/share/nginx/html/registry/skill.md.template
+COPY --from=build /app/src/docs/claude-marketplace.json.template /usr/share/nginx/html/registry/claude-marketplace.json.template
+COPY --from=build /app/src/docs/llms.txt.template /usr/share/nginx/html/llms.txt.template
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY runtime-config.js.template /usr/share/nginx/html/runtime-config.js.template
 COPY docker-entrypoint.d/30-runtime-config.sh /docker-entrypoint.d/30-runtime-config.sh

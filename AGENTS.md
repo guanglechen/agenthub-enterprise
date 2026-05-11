@@ -15,6 +15,7 @@ Current project shape:
 - enterprise discovery layer: `catalogProfile`
 - primary automation entrypoint: `agenthub-cli`
 - local Claude Code integration: `plugins/agenthub-connector-plugin`
+- Claude Code marketplace compatibility: `.claude-plugin/marketplace.json` and `/registry/claude-marketplace.json`
 
 This repo is already beyond concept stage. It has working backend, frontend, CLI, local plugin, Docker deployment, and smoke coverage.
 
@@ -33,6 +34,7 @@ Then choose the task-specific entrypoint:
   - `docs/21-local-claude-plugin-connector.md`
   - `docs/22-enterprise-private-deployment-playbook.md`
   - `docs/23-agenthub-cli-and-agent-onboarding.md`
+  - `docs/26-claude-code-marketplace-compat-design.md`
 - Backend publish / search / governance:
   - `server/skillhub-app`
   - `server/skillhub-domain`
@@ -50,7 +52,7 @@ Current repo behavior and direction:
 - `skill` remains the core publish/install/version unit
 - `agent/profile` and `agent/install-plan` are the current Agent onboarding APIs
 - `agenthub-cli` is the preferred machine interface
-- local Claude plugin is MVP and path-plugin-first, not a fully published marketplace plugin yet
+- Claude plugin is distributed as a local/Git marketplace-compatible plugin, while AgentHub Skill market remains authoritative
 - skill review is currently disabled by default
 - open-access mode exists and is actively used in local/staging-style flows
 
@@ -103,10 +105,11 @@ Main backend entrypoint:
 - repo wrapper:
   - `bin/agenthub-cli`
 - web-distributed tarball:
-  - `web/public/downloads/agenthub-cli-0.1.1.tgz`
+  - `web/public/downloads/agenthub-cli-0.1.3.tgz`
 
 ## Local Claude Plugin
 
+- `.claude-plugin/marketplace.json`
 - `plugins/agenthub-connector-plugin/.claude-plugin/plugin.json`
 - `plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs`
 - `plugins/agenthub-connector-plugin/skills/*/SKILL.md`
@@ -145,6 +148,8 @@ Current CLI already supports:
 - `recommend`
 - `agent profile`
 - `agent install-plan`
+- `marketplace validate`
+- `marketplace export`
 
 Current local plugin already supports:
 
@@ -153,6 +158,12 @@ Current local plugin already supports:
 - `install-plan`
 - `install-skill`
 - `apply-install-plan`
+- `harness-browse`
+- `harness-scan`
+- `harness-init`
+- `harness-verify`
+- `harness-propose`
+- `harness-contribute`
 
 Current plugin behavior:
 
@@ -167,12 +178,11 @@ Do not accidentally redesign toward these unless the user explicitly asks:
 - replacing `skill` with a new top-level asset model
 - reintroducing heavy approval workflows by default
 - public marketplace-first wording
-- direct plugin marketplace publication as if it is already complete
+- treating Claude Code marketplace as the primary AgentHub asset model
 - assuming the repo is microservice-based
 
 Not done yet:
 
-- formal plugin marketplace distribution
 - managed settings / `extraKnownMarketplaces`
 - automatic `.claude/settings.json` injection
 - plugin dependency orchestration
@@ -215,8 +225,9 @@ docker compose -p skillhub-staging -f docker-compose.yml -f docker-compose.stagi
 
 Then verify:
 
-- `http://localhost/downloads/agenthub-cli-0.1.1.tgz`
+- `http://localhost/downloads/agenthub-cli-0.1.3.tgz`
 - `http://localhost/registry/skill.md`
+- `http://localhost/registry/claude-marketplace.json`
 
 ## Backend changes
 
@@ -253,6 +264,8 @@ These smoke scripts are the current high-value end-to-end check.
 
 You should validate at least these behaviors:
 
+- `agenthub-cli marketplace validate --file .claude-plugin/marketplace.json --json`
+- `agenthub-cli marketplace validate --plugin-dir plugins/agenthub-connector-plugin --json`
 - `agenthub-cli agent profile`
 - `agenthub-cli agent install-plan`
 - `node plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs profile`
@@ -271,4 +284,4 @@ You should validate at least these behaviors:
 
 Use this summary:
 
-> AgentHub Enterprise is a private enterprise Skill/Agent asset hub. It keeps `skill package` as the authoritative release unit, layers enterprise catalog metadata and recommendation on top, and currently exposes `agenthub-cli` plus a local Claude Code connector plugin as the main Agent integration path.
+> AgentHub Enterprise is a private enterprise Skill/Agent asset hub. It keeps `skill package` as the authoritative release unit, layers enterprise catalog metadata and recommendation on top, and exposes `agenthub-cli` plus a Claude Code marketplace-compatible connector plugin as the main Agent integration path.

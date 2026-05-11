@@ -1,0 +1,13 @@
+id: rest-crud-api
+title: REST CRUD API cell
+summary: Add a conventional REST controller/service/test skeleton to a Spring Boot microservice.
+inputs:
+  entityName:
+    type: string
+    required: true
+  packageName:
+    type: string
+    required: true
+verification:
+  - rule: basic-java-service
+  - command: mvn test

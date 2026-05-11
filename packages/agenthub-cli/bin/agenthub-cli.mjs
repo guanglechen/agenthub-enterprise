@@ -136,6 +136,15 @@ function loadStructuredFile(filePath) {
   return JSON.parse(raw)
 }
 
+function loadJsonFile(filePath) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    fail(`Invalid JSON file at ${filePath}: ${message}`)
+  }
+}
+
 function normalizeCatalogBody(input) {
   return {
     assetType: input.assetType,
@@ -158,6 +167,648 @@ function normalizeStringList(value) {
     return value.map((item) => String(item).trim()).filter(Boolean)
   }
   return String(value).split(',').map((item) => item.trim()).filter(Boolean)
+}
+
+function uniqueList(values) {
+  return Array.from(new Set(values.map((item) => String(item).trim()).filter(Boolean)))
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isKebabCase(value) {
+  return /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/.test(String(value || ''))
+}
+
+function toSlug(value) {
+  return String(value || 'harness-package')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'harness-package'
+}
+
+function toClassName(value) {
+  return toSlug(value)
+    .split('-')
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join('') || 'Application'
+}
+
+function readTextIfExists(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return ''
+  }
+  return fs.readFileSync(filePath, 'utf8')
+}
+
+function loadStructuredFileIfExists(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return null
+  }
+  return loadStructuredFile(filePath)
+}
+
+function writeStructuredFile(filePath, data) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true })
+  if (filePath.endsWith('.yaml') || filePath.endsWith('.yml')) {
+    fs.writeFileSync(filePath, YAML.stringify(data), 'utf8')
+    return
+  }
+  fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf8')
+}
+
+function walkFiles(root, {
+  ignore = ['.git', 'node_modules', 'target', 'build', 'dist', '.agenthub'],
+  maxFiles = 2000,
+} = {}) {
+  const result = []
+  if (!fs.existsSync(root)) {
+    return result
+  }
+
+  function visit(current) {
+    if (result.length >= maxFiles) {
+      return
+    }
+    const entries = fs.readdirSync(current, { withFileTypes: true })
+    for (const entry of entries) {
+      if (result.length >= maxFiles || ignore.includes(entry.name)) {
+        continue
+      }
+      const absolute = path.join(current, entry.name)
+      if (entry.isDirectory()) {
+        visit(absolute)
+      } else if (entry.isFile()) {
+        result.push(path.relative(root, absolute))
+      }
+    }
+  }
+
+  visit(root)
+  return result
+}
+
+function parseMavenModules(pomText) {
+  return Array.from(pomText.matchAll(/<module>\s*([^<]+?)\s*<\/module>/g))
+    .map((match) => match[1].trim())
+    .filter(Boolean)
+}
+
+function detectJavaVersion(pomText, gradleText) {
+  const candidates = [
+    /<java\.version>\s*([^<]+?)\s*<\/java\.version>/,
+    /<maven\.compiler\.source>\s*([^<]+?)\s*<\/maven\.compiler\.source>/,
+    /<maven\.compiler\.release>\s*([^<]+?)\s*<\/maven\.compiler\.release>/,
+  ]
+  for (const pattern of candidates) {
+    const match = pomText.match(pattern)
+    if (match) {
+      return match[1].trim()
+    }
+  }
+  const gradleMatch = gradleText.match(/JavaVersion\.VERSION_(\d+)/) || gradleText.match(/sourceCompatibility\s*=\s*['"]?(\d+)/)
+  return gradleMatch ? gradleMatch[1].trim() : null
+}
+
+function detectJavaComponents(moduleDir) {
+  const sourceRoot = path.join(moduleDir, 'src', 'main', 'java')
+  const files = walkFiles(sourceRoot, { maxFiles: 3000 })
+  const components = []
+  let springBootApplication = null
+
+  for (const relativePath of files) {
+    if (!relativePath.endsWith('.java')) {
+      continue
+    }
+    const absolutePath = path.join(sourceRoot, relativePath)
+    const content = readTextIfExists(absolutePath)
+    const normalizedPath = relativePath.replaceAll(path.sep, '/')
+    const component = {
+      path: `src/main/java/${normalizedPath}`,
+      kind: null,
+    }
+
+    if (content.includes('@SpringBootApplication')) {
+      springBootApplication = component.path
+    }
+    if (content.includes('@RestController') || content.includes('@Controller') || normalizedPath.endsWith('Controller.java')) {
+      component.kind = 'rest-controller'
+    } else if (content.includes('@Repository') || normalizedPath.endsWith('Repository.java')) {
+      component.kind = 'repository'
+    } else if (content.includes('@FeignClient')) {
+      component.kind = 'feign-client'
+    } else if (content.includes('@KafkaListener') || content.includes('@RabbitListener')) {
+      component.kind = 'event-consumer'
+    } else if (content.includes('@Scheduled')) {
+      component.kind = 'scheduled-job'
+    } else if (content.includes('@Service') || normalizedPath.endsWith('Service.java')) {
+      component.kind = 'service'
+    }
+
+    if (component.kind) {
+      components.push(component)
+    }
+  }
+
+  return { components, springBootApplication }
+}
+
+function scanJavaModule(moduleDir, name) {
+  const pomPath = path.join(moduleDir, 'pom.xml')
+  const gradlePath = path.join(moduleDir, 'build.gradle')
+  const gradleKtsPath = path.join(moduleDir, 'build.gradle.kts')
+  const pomText = readTextIfExists(pomPath)
+  const gradleText = `${readTextIfExists(gradlePath)}\n${readTextIfExists(gradleKtsPath)}`
+  const hasPom = Boolean(pomText)
+  const hasGradle = Boolean(gradleText.trim())
+  const sourceRoot = path.join(moduleDir, 'src', 'main', 'java')
+  const testRoot = path.join(moduleDir, 'src', 'test', 'java')
+  const { components, springBootApplication } = detectJavaComponents(moduleDir)
+  const framework = pomText.includes('spring-boot') || gradleText.includes('spring-boot') || springBootApplication
+    ? 'spring-boot'
+    : null
+  const javaVersion = detectJavaVersion(pomText, gradleText)
+  const componentKinds = uniqueList(components.map((item) => item.kind))
+  const stack = uniqueList([
+    'java',
+    javaVersion ? `java${javaVersion}` : null,
+    hasPom ? 'maven' : null,
+    hasGradle ? 'gradle' : null,
+    framework ? 'spring-boot3' : null,
+  ].filter(Boolean))
+
+  return {
+    name,
+    path: path.relative(process.cwd(), moduleDir) || '.',
+    buildTool: hasPom ? 'maven' : (hasGradle ? 'gradle' : null),
+    language: fs.existsSync(sourceRoot) || hasPom || hasGradle ? 'java' : 'unknown',
+    framework,
+    javaVersion,
+    sourceRoot: fs.existsSync(sourceRoot) ? path.relative(process.cwd(), sourceRoot) : null,
+    testRoot: fs.existsSync(testRoot) ? path.relative(process.cwd(), testRoot) : null,
+    hasTests: fs.existsSync(testRoot) && walkFiles(testRoot, { maxFiles: 20 }).some((file) => file.endsWith('.java')),
+    springBootApplication,
+    componentKinds,
+    components,
+    stack,
+  }
+}
+
+function inferTopology(modules) {
+  const kinds = new Set(modules.flatMap((module) => module.componentKinds || []))
+  if (kinds.has('event-consumer')) {
+    return 'event-consumer'
+  }
+  if (kinds.has('scheduled-job')) {
+    return 'batch'
+  }
+  if (kinds.has('rest-controller')) {
+    return 'crud-api'
+  }
+  return 'shared-lib'
+}
+
+function scanWorkspaceModules(directory) {
+  const workspace = path.resolve(directory || '.')
+  const rootPom = readTextIfExists(path.join(workspace, 'pom.xml'))
+  const moduleNames = uniqueList(parseMavenModules(rootPom))
+  const modules = []
+
+  modules.push(scanJavaModule(workspace, path.basename(workspace)))
+  for (const moduleName of moduleNames) {
+    const moduleDir = path.join(workspace, moduleName)
+    if (fs.existsSync(moduleDir) && fs.statSync(moduleDir).isDirectory()) {
+      modules.push(scanJavaModule(moduleDir, moduleName))
+    }
+  }
+
+  const javaModules = modules.filter((module) => module.language === 'java')
+  const stack = uniqueList(javaModules.flatMap((module) => module.stack || []))
+  const topology = inferTopology(javaModules)
+  return {
+    workspaceName: path.basename(workspace),
+    workspace,
+    moduleCount: javaModules.length,
+    topology,
+    stack,
+    modules: javaModules,
+  }
+}
+
+function buildHarnessVerificationReport(directory) {
+  const scan = scanWorkspaceModules(directory)
+  const findings = []
+
+  if (scan.modules.length === 0) {
+    findings.push({
+      rule: 'java-module-detected',
+      severity: 'error',
+      message: 'No Java module was detected. Expected pom.xml, Gradle build file, or src/main/java.',
+      suggestion: 'Run harness init for a new service or execute this command from a Java service root.',
+    })
+  }
+
+  for (const moduleInfo of scan.modules) {
+    if (!moduleInfo.buildTool) {
+      findings.push({
+        rule: 'build-tool-present',
+        severity: 'error',
+        module: moduleInfo.name,
+        message: 'Java module has no Maven or Gradle build file.',
+        suggestion: 'Add pom.xml or build.gradle, or sync a Java microservice harness scaffold.',
+      })
+    }
+    if (!moduleInfo.sourceRoot) {
+      findings.push({
+        rule: 'main-source-present',
+        severity: 'error',
+        module: moduleInfo.name,
+        message: 'Java module has no src/main/java source root.',
+        suggestion: 'Create src/main/java or run harness init with a service template.',
+      })
+    }
+    if (moduleInfo.framework === 'spring-boot' && !moduleInfo.springBootApplication) {
+      findings.push({
+        rule: 'spring-boot-application-present',
+        severity: 'warning',
+        module: moduleInfo.name,
+        message: 'Spring Boot dependency was detected but no @SpringBootApplication class was found.',
+        suggestion: 'Add an application entrypoint or verify this module is a library module.',
+      })
+    }
+    if (!moduleInfo.hasTests) {
+      findings.push({
+        rule: 'test-source-present',
+        severity: 'warning',
+        module: moduleInfo.name,
+        message: 'No Java tests were detected under src/test/java.',
+        suggestion: 'Add a smoke test or apply a quality Harness Package.',
+      })
+    }
+  }
+
+  const failed = findings.some((finding) => finding.severity === 'error')
+  const warning = findings.some((finding) => finding.severity === 'warning')
+  return {
+    status: failed ? 'failed' : (warning ? 'warning' : 'passed'),
+    checkedAt: new Date().toISOString(),
+    summary: {
+      modules: scan.moduleCount,
+      passed: failed ? 0 : 1,
+      failed: findings.filter((finding) => finding.severity === 'error').length,
+      warning: findings.filter((finding) => finding.severity === 'warning').length,
+    },
+    scan,
+    findings,
+  }
+}
+
+function loadHarnessManifest(packageRoot) {
+  const manifestPath = ['harness/manifest.yaml', 'harness/manifest.yml', 'harness/manifest.json']
+    .map((name) => path.join(packageRoot, name))
+    .find((candidate) => fs.existsSync(candidate))
+  if (!manifestPath) {
+    fail(`Harness manifest not found under ${packageRoot}. Expected harness/manifest.yaml.`)
+  }
+  return {
+    path: manifestPath,
+    data: loadStructuredFile(manifestPath),
+  }
+}
+
+function renderTemplateContent(content, inputs) {
+  return content.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (_, key) => {
+    const value = key.split('.').reduce((current, part) => current && current[part], inputs)
+    return value === undefined || value === null ? '' : String(value)
+  })
+}
+
+function copyTemplateTree(sourceDir, targetDir, inputs, options = {}) {
+  if (!fs.existsSync(sourceDir)) {
+    fail(`Harness template directory not found: ${sourceDir}`)
+  }
+  const copied = []
+  const skipped = []
+  const files = walkFiles(sourceDir, { ignore: [], maxFiles: 5000 })
+  for (const relativePath of files) {
+    const sourceFile = path.join(sourceDir, relativePath)
+    const renderedRelativePath = renderTemplateContent(relativePath, inputs)
+    const targetFile = path.join(targetDir, renderedRelativePath)
+    if (fs.existsSync(targetFile) && options.force !== true && options.force !== 'true') {
+      skipped.push(path.relative(targetDir, targetFile))
+      continue
+    }
+    fs.mkdirSync(path.dirname(targetFile), { recursive: true })
+    const content = fs.readFileSync(sourceFile, 'utf8')
+    fs.writeFileSync(targetFile, renderTemplateContent(content, inputs), 'utf8')
+    copied.push(path.relative(targetDir, targetFile))
+  }
+  return { copied, skipped }
+}
+
+function resolveHarnessInputs(options, targetDir) {
+  const loaded = loadStructuredFileIfExists(options.inputs ? path.resolve(String(options.inputs)) : null) || {}
+  const artifactId = loaded.artifactId || options.artifactId || toSlug(path.basename(targetDir))
+  const packageName = loaded.packageName || options.packageName || `com.company.${toSlug(artifactId).replaceAll('-', '')}`
+  return {
+    groupId: loaded.groupId || options.groupId || 'com.company',
+    artifactId,
+    serviceName: loaded.serviceName || options.serviceName || artifactId,
+    packageName,
+    packagePath: String(packageName).replaceAll('.', '/'),
+    applicationClassName: loaded.applicationClassName || options.applicationClassName || `${toClassName(artifactId)}Application`,
+    javaVersion: loaded.javaVersion || options.javaVersion || '21',
+    ...loaded,
+  }
+}
+
+function scanSecrets(directory) {
+  const patterns = [
+    { id: 'private-key', severity: 'error', pattern: /-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----/ },
+    { id: 'token-like-value', severity: 'error', pattern: /(api[_-]?key|access[_-]?token|secret[_-]?key)\s*[:=]\s*['"]?[A-Za-z0-9_\-.]{20,}/i },
+    { id: 'password-like-value', severity: 'warning', pattern: /(password|passwd|pwd)\s*[:=]\s*['"]?[^\s'"]{8,}/i },
+    { id: 'jdbc-password', severity: 'error', pattern: /jdbc:[^\s'"]+(password|pwd)=([^&\s'"]+)/i },
+  ]
+  const allowedExtensions = new Set(['.java', '.xml', '.yaml', '.yml', '.json', '.properties', '.env', '.md', '.txt'])
+  const findings = []
+  for (const relativePath of walkFiles(directory, { maxFiles: 5000 })) {
+    const ext = path.extname(relativePath)
+    if (!allowedExtensions.has(ext) && !relativePath.endsWith('.env')) {
+      continue
+    }
+    const content = readTextIfExists(path.join(directory, relativePath))
+    for (const pattern of patterns) {
+      if (pattern.pattern.test(content)) {
+        findings.push({
+          rule: pattern.id,
+          severity: pattern.severity,
+          file: relativePath,
+          message: `Potential secret matched ${pattern.id}.`,
+        })
+      }
+    }
+  }
+  return findings
+}
+
+function normalizePathArray(value) {
+  if (!value) {
+    return []
+  }
+  return Array.isArray(value) ? value : [value]
+}
+
+function validatePluginManifest(manifest, manifestPath) {
+  const errors = []
+  const warnings = []
+  if (!isPlainObject(manifest)) {
+    return { errors: [`${manifestPath} must contain a JSON object.`], warnings }
+  }
+  if (!manifest.name) {
+    errors.push('plugin.json requires name.')
+  } else if (!isKebabCase(manifest.name)) {
+    errors.push(`plugin name must be kebab-case: ${manifest.name}`)
+  }
+  if (manifest.version && !/^\d+\.\d+\.\d+([+-][0-9A-Za-z.-]+)?$/.test(String(manifest.version))) {
+    warnings.push(`plugin version should be SemVer: ${manifest.version}`)
+  }
+
+  for (const field of ['commands', 'agents', 'skills', 'hooks', 'mcpServers']) {
+    for (const item of normalizePathArray(manifest[field])) {
+      if (typeof item === 'string' && !item.startsWith('./')) {
+        errors.push(`plugin ${field} path must be relative and start with ./: ${item}`)
+      }
+    }
+  }
+  return { errors, warnings }
+}
+
+function validatePluginDirectory(pluginDir) {
+  const errors = []
+  const warnings = []
+  const manifestPath = path.join(pluginDir, '.claude-plugin', 'plugin.json')
+  if (!fs.existsSync(manifestPath)) {
+    return {
+      pluginDir,
+      manifestPath,
+      manifest: null,
+      errors: [`Plugin directory is missing .claude-plugin/plugin.json: ${pluginDir}`],
+      warnings,
+    }
+  }
+
+  const manifest = loadJsonFile(manifestPath)
+  const manifestResult = validatePluginManifest(manifest, manifestPath)
+  errors.push(...manifestResult.errors)
+  warnings.push(...manifestResult.warnings)
+
+  const skillsPathEntries = normalizePathArray(manifest.skills || './skills')
+  for (const skillsPath of skillsPathEntries) {
+    if (typeof skillsPath !== 'string') {
+      continue
+    }
+    const absoluteSkillsPath = path.resolve(pluginDir, skillsPath)
+    if (!fs.existsSync(absoluteSkillsPath)) {
+      warnings.push(`Plugin skills path does not exist: ${skillsPath}`)
+      continue
+    }
+    const skillDirs = fs.readdirSync(absoluteSkillsPath, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join(absoluteSkillsPath, entry.name))
+    if (skillDirs.length === 0) {
+      warnings.push(`Plugin skills path has no skill directories: ${skillsPath}`)
+    }
+    for (const skillDir of skillDirs) {
+      if (!fs.existsSync(path.join(skillDir, 'SKILL.md'))) {
+        errors.push(`Plugin skill is missing SKILL.md: ${path.relative(pluginDir, skillDir)}`)
+      }
+    }
+  }
+
+  return { pluginDir, manifestPath, manifest, errors, warnings }
+}
+
+function resolveMarketplacePath(options) {
+  if (options.file) {
+    return path.resolve(String(options.file))
+  }
+  const root = path.resolve(String(options.dir || '.'))
+  return path.join(root, '.claude-plugin', 'marketplace.json')
+}
+
+function marketplaceRootFromFile(marketplacePath) {
+  const directory = path.dirname(marketplacePath)
+  return path.basename(directory) === '.claude-plugin' ? path.dirname(directory) : directory
+}
+
+function validateMarketplaceObject(marketplace, marketplacePath) {
+  const errors = []
+  const warnings = []
+  const pluginResults = []
+  const marketplaceRoot = marketplaceRootFromFile(marketplacePath)
+
+  if (!isPlainObject(marketplace)) {
+    return { errors: [`${marketplacePath} must contain a JSON object.`], warnings, pluginResults }
+  }
+  if (!marketplace.name) {
+    errors.push('marketplace.json requires name.')
+  } else if (!isKebabCase(marketplace.name)) {
+    errors.push(`marketplace name must be kebab-case: ${marketplace.name}`)
+  }
+  if (!isPlainObject(marketplace.owner)) {
+    errors.push('marketplace.json requires owner object.')
+  }
+  if (!Array.isArray(marketplace.plugins)) {
+    errors.push('marketplace.json requires plugins array.')
+    return { errors, warnings, pluginResults }
+  }
+
+  const names = new Set()
+  for (const [index, plugin] of marketplace.plugins.entries()) {
+    if (!isPlainObject(plugin)) {
+      errors.push(`plugins[${index}] must be an object.`)
+      continue
+    }
+    if (!plugin.name) {
+      errors.push(`plugins[${index}] requires name.`)
+    } else if (!isKebabCase(plugin.name)) {
+      errors.push(`plugins[${index}].name must be kebab-case: ${plugin.name}`)
+    } else if (names.has(plugin.name)) {
+      errors.push(`Duplicate plugin name in marketplace: ${plugin.name}`)
+    } else {
+      names.add(plugin.name)
+    }
+    if (plugin.source === undefined || plugin.source === null) {
+      errors.push(`plugins[${index}] requires source.`)
+      continue
+    }
+
+    if (typeof plugin.source === 'string') {
+      if (plugin.source.startsWith('./') || plugin.source.startsWith('../')) {
+        const pluginDir = path.resolve(marketplaceRoot, plugin.source)
+        const pluginResult = validatePluginDirectory(pluginDir)
+        pluginResults.push({ name: plugin.name, ...pluginResult })
+        errors.push(...pluginResult.errors.map((message) => `${plugin.name}: ${message}`))
+        warnings.push(...pluginResult.warnings.map((message) => `${plugin.name}: ${message}`))
+      } else {
+        warnings.push(`${plugin.name}: string source is not relative; prefer an official source object for remote plugins.`)
+      }
+      continue
+    }
+
+    if (!isPlainObject(plugin.source)) {
+      errors.push(`plugins[${index}].source must be a string or object.`)
+      continue
+    }
+    const sourceType = plugin.source.source
+    if (!['github', 'git', 'url', 'npm'].includes(sourceType)) {
+      errors.push(`${plugin.name}: unsupported source.source "${sourceType}". Use github, git, url, npm, or a relative path string.`)
+    }
+  }
+
+  return { errors, warnings, pluginResults }
+}
+
+function commandMarketplaceValidate(options) {
+  if (options['plugin-dir']) {
+    const pluginResult = validatePluginDirectory(path.resolve(String(options['plugin-dir'])))
+    const result = {
+      status: pluginResult.errors.length > 0 ? 'failed' : 'passed',
+      errors: pluginResult.errors,
+      warnings: pluginResult.warnings,
+      plugin: {
+        name: pluginResult.manifest?.name,
+        version: pluginResult.manifest?.version,
+        pluginDir: pluginResult.pluginDir,
+        manifestPath: pluginResult.manifestPath,
+      },
+    }
+    printJson(result)
+    if (pluginResult.errors.length > 0) {
+      process.exitCode = 2
+    }
+    return
+  }
+
+  const marketplacePath = resolveMarketplacePath(options)
+  if (!fs.existsSync(marketplacePath)) {
+    fail(`Marketplace file not found: ${marketplacePath}`)
+  }
+  const marketplace = loadJsonFile(marketplacePath)
+  const validation = validateMarketplaceObject(marketplace, marketplacePath)
+  const result = {
+    status: validation.errors.length > 0 ? 'failed' : 'passed',
+    marketplacePath,
+    name: marketplace.name,
+    pluginCount: Array.isArray(marketplace.plugins) ? marketplace.plugins.length : 0,
+    errors: validation.errors,
+    warnings: validation.warnings,
+    plugins: validation.pluginResults.map((item) => ({
+      name: item.name,
+      pluginDir: item.pluginDir,
+      manifestPath: item.manifestPath,
+      version: item.manifest?.version,
+      errors: item.errors,
+      warnings: item.warnings,
+    })),
+  }
+  printJson(result)
+  if (validation.errors.length > 0) {
+    process.exitCode = 2
+  }
+}
+
+function commandMarketplaceExport(options) {
+  const pluginDir = path.resolve(String(options['plugin-dir'] || 'plugins/agenthub-connector-plugin'))
+  const pluginResult = validatePluginDirectory(pluginDir)
+  if (!pluginResult.manifest) {
+    fail(pluginResult.errors.join('\n'))
+  }
+  const outputPath = path.resolve(String(options.out || path.join('.claude-plugin', 'marketplace.json')))
+  const marketplaceRoot = marketplaceRootFromFile(outputPath)
+  const relativePluginDir = `./${path.relative(marketplaceRoot, pluginDir).replaceAll(path.sep, '/')}`
+  const manifest = pluginResult.manifest
+  const marketplace = {
+    name: String(options.name || 'agenthub-enterprise'),
+    owner: {
+      name: String(options.owner || 'AgentHub Platform Team'),
+    },
+    metadata: {
+      description: String(options.description || 'Enterprise Claude Code plugin marketplace exported by AgentHub.'),
+      version: String(options.version || manifest.version || '0.1.0'),
+      pluginRoot: '.',
+      registryDoc: String(options['registry-doc'] || '/registry/skill.md'),
+    },
+    plugins: [
+      {
+        name: manifest.name,
+        source: options.source ? String(options.source) : relativePluginDir,
+        description: manifest.description,
+        version: manifest.version,
+        author: manifest.author,
+        category: manifest.category || 'enterprise-development',
+        tags: uniqueList([...(manifest.keywords || []), 'agenthub', 'skill-market']),
+        keywords: manifest.keywords || [],
+        strict: true,
+      },
+    ],
+  }
+  writeJsonFile(outputPath, marketplace)
+  const validation = validateMarketplaceObject(marketplace, outputPath)
+  const result = {
+    status: validation.errors.length > 0 ? 'failed' : 'exported',
+    outputPath,
+    marketplace,
+    errors: validation.errors,
+    warnings: [...pluginResult.warnings, ...validation.warnings],
+  }
+  printJson(result)
+  if (validation.errors.length > 0) {
+    process.exitCode = 2
+  }
 }
 
 function pickDefinedEntries(value) {
@@ -481,6 +1132,257 @@ async function commandAgentInstallPlan(options) {
   printJson(data)
 }
 
+async function commandHarnessBrowse(options) {
+  const params = new URLSearchParams()
+  params.set('q', String(options.q || 'harness'))
+  for (const key of ['namespace', 'label', 'assetType', 'domain', 'stage', 'topology', 'stack', 'sort', 'page', 'size']) {
+    if (options[key]) {
+      params.set(key, String(options[key]))
+    }
+  }
+  if (!params.has('sort')) {
+    params.set('sort', 'recommended')
+  }
+  const data = await request('GET', `/api/v1/search/skills?${params.toString()}`, options)
+  if (options.json) {
+    printJson(data)
+    return
+  }
+  for (const item of data.items || []) {
+    process.stdout.write(`@${item.namespace}/${item.slug}  ${item.displayName}\n`)
+  }
+}
+
+function commandHarnessScanModules(options) {
+  const report = scanWorkspaceModules(path.resolve(options.dir || '.'))
+  printJson(report)
+}
+
+function commandHarnessVerify(options) {
+  const targetDir = path.resolve(options.dir || '.')
+  const report = buildHarnessVerificationReport(targetDir)
+  const outputPath = options.out
+    ? path.resolve(String(options.out))
+    : path.join(targetDir, '.agenthub', 'verify-report.json')
+  if (options.write !== 'false') {
+    writeJsonFile(outputPath, report)
+  }
+  printJson({ ...report, outputPath })
+  if (report.status === 'failed') {
+    process.exitCode = 2
+  }
+}
+
+async function resolveHarnessPackageRoot(options, tempDir) {
+  if (options['package-dir']) {
+    return path.resolve(String(options['package-dir']))
+  }
+  if (!options.package) {
+    fail('harness init requires --package @namespace/slug or --package-dir <path>')
+  }
+  const zipPath = path.join(tempDir, 'harness-package.zip')
+  await downloadSkillBundle({ ...options, skill: options.package }, zipPath)
+  const packageRoot = path.join(tempDir, 'package')
+  fs.mkdirSync(packageRoot, { recursive: true })
+  try {
+    await extractZip(zipPath, { dir: packageRoot })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    fail(`Failed to unpack harness package ${options.package}: ${message}`)
+  }
+  return packageRoot
+}
+
+async function commandHarnessInit(options) {
+  const targetDir = path.resolve(options.dir || '.')
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agenthub-cli-harness-init-'))
+  try {
+    const packageRoot = await resolveHarnessPackageRoot(options, tempDir)
+    const manifest = loadHarnessManifest(packageRoot)
+    const spec = manifest.data.spec || {}
+    const templates = Array.isArray(spec.templates) ? spec.templates : []
+    const templatePath = options.template
+      || spec.defaultTemplate
+      || (templates[0] && templates[0].path)
+      || 'harness/templates/service'
+    const sourceTemplateDir = path.resolve(packageRoot, templatePath)
+    const inputs = resolveHarnessInputs(options, targetDir)
+    const copyResult = copyTemplateTree(sourceTemplateDir, targetDir, inputs, options)
+    const lockPath = path.join(targetDir, '.agenthub', 'harness.lock.json')
+    const lock = {
+      platform: resolveRuntime(options).baseUrl,
+      generatedAt: new Date().toISOString(),
+      packages: [
+        {
+          name: options.package || manifest.data.metadata?.name || path.basename(packageRoot),
+          version: manifest.data.metadata?.version || '0.0.0',
+          displayName: manifest.data.metadata?.displayName || manifest.data.metadata?.name || 'Harness Package',
+          manifestPath: path.relative(targetDir, manifest.path),
+          source: options['package-dir'] ? path.resolve(String(options['package-dir'])) : 'registry',
+          installedAt: new Date().toISOString(),
+        },
+      ],
+    }
+    writeJsonFile(lockPath, lock)
+    const verifyReport = buildHarnessVerificationReport(targetDir)
+    const verifyPath = path.join(targetDir, '.agenthub', 'verify-report.json')
+    writeJsonFile(verifyPath, verifyReport)
+    printJson({
+      status: copyResult.skipped.length > 0 ? 'partial' : 'initialized',
+      targetDir,
+      packageRoot,
+      manifestPath: manifest.path,
+      templatePath,
+      copied: copyResult.copied,
+      skipped: copyResult.skipped,
+      lockPath,
+      verifyPath,
+      verifyStatus: verifyReport.status,
+    })
+    if (copyResult.skipped.length > 0 || verifyReport.status === 'failed') {
+      process.exitCode = 2
+    }
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true })
+  }
+}
+
+function commandHarnessSync(options) {
+  const targetDir = path.resolve(options.dir || '.')
+  const lockPath = path.join(targetDir, '.agenthub', 'harness.lock.json')
+  const lock = readJsonIfExists(lockPath)
+  printJson({
+    status: lock.packages ? 'synced' : 'missing-lock',
+    targetDir,
+    lockPath,
+    packages: lock.packages || [],
+    nextActions: lock.packages
+      ? ['Run agenthub-cli harness verify --json after syncing local rules.']
+      : ['Run agenthub-cli harness init before sync.'],
+  })
+  if (!lock.packages) {
+    process.exitCode = 2
+  }
+}
+
+function commandHarnessPropose(options) {
+  const targetDir = path.resolve(options.dir || '.')
+  const report = buildHarnessVerificationReport(targetDir)
+  const proposals = report.findings.map((finding, index) => ({
+    id: `proposal-${String(index + 1).padStart(3, '0')}`,
+    title: finding.rule,
+    severity: finding.severity,
+    reason: finding.message,
+    suggestion: finding.suggestion,
+    command: finding.rule === 'test-source-present'
+      ? 'agenthub-cli harness browse --assetType quality --json'
+      : 'agenthub-cli harness browse --assetType scaffold --json',
+  }))
+  printJson({
+    status: proposals.length > 0 ? 'proposed' : 'clean',
+    targetDir,
+    proposals,
+    verifyStatus: report.status,
+  })
+}
+
+function commandHarnessApply() {
+  fail('harness apply is not implemented in this CLI phase. Use harness init, verify, and contribute --dry-run first.', 2)
+}
+
+function commandHarnessCellAdd() {
+  fail('harness cell add is not implemented in this CLI phase. Use harness browse to find a package and harness init to apply a template.', 2)
+}
+
+function commandHarnessContribute(options) {
+  const sourceDir = path.resolve(options.dir || '.')
+  if (!options.name) {
+    fail('harness contribute requires --name')
+  }
+  const contributionSlug = toSlug(options.name)
+  const outputDir = path.resolve(options.out || path.join(sourceDir, '.agenthub', 'harness-contributions', contributionSlug))
+  const scan = scanWorkspaceModules(sourceDir)
+  const verifyReport = buildHarnessVerificationReport(sourceDir)
+  const secretFindings = scanSecrets(sourceDir)
+  const blocked = secretFindings.some((finding) => finding.severity === 'error')
+  fs.rmSync(outputDir, { recursive: true, force: true })
+  fs.mkdirSync(path.join(outputDir, 'harness', 'rules'), { recursive: true })
+  fs.mkdirSync(path.join(outputDir, 'harness', 'recipes'), { recursive: true })
+  fs.mkdirSync(path.join(outputDir, 'harness', 'templates'), { recursive: true })
+
+  const catalog = normalizeCatalogBody({
+    assetType: options.assetType || 'microservice',
+    domain: options.domain,
+    stage: options.stage || 'develop',
+    topology: options.topology || scan.topology,
+    stack: scan.stack,
+    ownerTeam: options.ownerTeam || options.namespace,
+    keywords: uniqueList(['harness', 'java-microservice', ...(normalizeStringList(options.keywords))]),
+    maintenanceMode: 'agent',
+    relations: [],
+  })
+  const manifest = {
+    apiVersion: 'agenthub.iflytek.com/v1alpha1',
+    kind: 'HarnessPackage',
+    metadata: {
+      name: contributionSlug,
+      displayName: options.name,
+      version: options.version || '0.1.0',
+      ownerTeam: catalog.ownerTeam,
+      minimumAgenthubCliVersion: '0.1.3',
+    },
+    spec: {
+      target: {
+        language: 'java',
+        framework: scan.stack.includes('spring-boot3') ? ['spring-boot3'] : [],
+        buildTool: uniqueList(scan.modules.map((moduleInfo) => moduleInfo.buildTool).filter(Boolean)),
+        topology: [scan.topology],
+      },
+      commands: {
+        verify: { recipe: 'recipes/verify.yaml' },
+        contribute: { recipe: 'recipes/contribute.yaml' },
+      },
+      rules: [
+        { id: 'scan-baseline', title: 'Scanned Java service baseline', path: 'rules/scan-summary.json' },
+      ],
+    },
+  }
+
+  fs.writeFileSync(path.join(outputDir, 'SKILL.md'), `# ${options.name}\n\nEnterprise Harness Package generated from ${path.basename(sourceDir)}.\n\nUse this package with \`agenthub-cli harness browse/init/verify\`.\n`, 'utf8')
+  fs.writeFileSync(path.join(outputDir, 'README.md'), `# ${options.name}\n\nGenerated by \`agenthub-cli harness contribute --dry-run\`.\n\nReview generated metadata before publishing.\n`, 'utf8')
+  writeStructuredFile(path.join(outputDir, 'catalog.yaml'), catalog)
+  writeStructuredFile(path.join(outputDir, 'harness', 'manifest.yaml'), manifest)
+  writeStructuredFile(path.join(outputDir, 'harness', 'rules', 'scan-summary.json'), { scan, verifyReport, secretFindings })
+  writeStructuredFile(path.join(outputDir, 'harness', 'recipes', 'verify.yaml'), {
+    steps: [
+      { run: 'agenthub-cli harness scan-modules --json' },
+      { run: 'agenthub-cli harness verify --json' },
+    ],
+  })
+  writeStructuredFile(path.join(outputDir, 'harness', 'recipes', 'contribute.yaml'), {
+    steps: [
+      { run: 'agenthub-cli harness contribute --dry-run' },
+      { run: 'agenthub-cli publish --namespace <namespace> --file <bundle.zip> --catalog-file catalog.yaml --yes' },
+    ],
+  })
+
+  printJson({
+    status: blocked ? 'blocked' : 'generated',
+    dryRun: options['dry-run'] === true || options['dry-run'] === 'true',
+    outputDir,
+    catalog,
+    manifestPath: path.join(outputDir, 'harness', 'manifest.yaml'),
+    verifyStatus: verifyReport.status,
+    secretFindings,
+    nextActions: blocked
+      ? ['Remove high-risk secrets before publishing this Harness Package.']
+      : ['Review generated files, package them as a skill, then publish with agenthub-cli publish.'],
+  })
+  if (blocked) {
+    process.exitCode = 2
+  }
+}
+
 function commandLogin(options) {
   const runtime = resolveRuntime(options)
   if (!runtime.token) {
@@ -557,6 +1459,19 @@ function printHelp() {
   agent profile --json
   agent install-plan --context-file context.json --json
   agent install-plan --assetType microservice --domain payment --stage develop --topology bff --stack spring-boot3,maven --json
+  harness browse [--domain order] [--topology crud-api] [--stack java21,spring-boot3] --json
+  harness scan-modules --dir . --json
+  harness init --package @namespace/java-microservice-harness --dir . --yes
+  harness init --package-dir ./examples/harness/java-microservice-harness --dir . --yes
+  harness sync --dir . --json
+  harness verify --dir . --json
+  harness propose --dir . --json
+  harness contribute --dir . --name order-harness --dry-run
+  harness apply --proposal proposal-001 --yes
+  harness cell add --cell rest-crud-api --inputs cell.yaml --yes
+  marketplace validate --file .claude-plugin/marketplace.json --json
+  marketplace validate --plugin-dir plugins/agenthub-connector-plugin --json
+  marketplace export --plugin-dir plugins/agenthub-connector-plugin --out .claude-plugin/marketplace.json --json
   config show [--show-token]
   config init-workspace --workspace . --base-url <url> --token <token> [--namespace team-space] [--domain payment] [--assetType microservice]
   sync --dir ./artifact-dir [--namespace team-space]
@@ -570,7 +1485,7 @@ async function main() {
     return
   }
 
-  const [command, subcommand] = positional
+  const [command, subcommand, nested] = positional
   switch (`${command}:${subcommand || ''}`) {
     case 'login:':
       commandLogin(options)
@@ -622,6 +1537,42 @@ async function main() {
       return
     case 'agent:install-plan':
       await commandAgentInstallPlan(options)
+      return
+    case 'harness:browse':
+      await commandHarnessBrowse(options)
+      return
+    case 'harness:scan-modules':
+      commandHarnessScanModules(options)
+      return
+    case 'harness:init':
+      await commandHarnessInit(options)
+      return
+    case 'harness:sync':
+      commandHarnessSync(options)
+      return
+    case 'harness:verify':
+      commandHarnessVerify(options)
+      return
+    case 'harness:propose':
+      commandHarnessPropose(options)
+      return
+    case 'harness:contribute':
+      commandHarnessContribute(options)
+      return
+    case 'harness:apply':
+      commandHarnessApply(options)
+      return
+    case 'harness:cell':
+      if (nested === 'add') {
+        commandHarnessCellAdd(options)
+        return
+      }
+      break
+    case 'marketplace:validate':
+      commandMarketplaceValidate(options)
+      return
+    case 'marketplace:export':
+      commandMarketplaceExport(options)
       return
     case 'config:show':
       commandConfigShow(options)

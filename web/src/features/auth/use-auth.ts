@@ -22,11 +22,12 @@ export function getAuthQueryOptions(enabled = true) {
 }
 
 export function useAuth(enabled = true) {
-  const { data: user, isLoading, error } = useQuery<User | null>(getAuthQueryOptions(enabled))
+  const { data: user, isLoading, isFetching, error } = useQuery<User | null>(getAuthQueryOptions(enabled))
 
   return {
     user: user ?? null,
     isLoading,
+    isFetching,
     isAuthenticated: !!user,
     hasRole: (role: string) => user?.platformRoles?.includes(role) ?? false,
     error,

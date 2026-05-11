@@ -7,5 +7,6 @@ public record AgentInstallPlanResponse(
         AgentWorkspaceContextResponse workspaceContext,
         List<AgentInstallPlanSkillResponse> requiredSkills,
         List<AgentInstallPlanSkillResponse> recommendedSkills,
-        List<String> nextActions
+        List<String> nextActions,
+        List<AgentInstallPlanCommandResponse> commands
 ) {}

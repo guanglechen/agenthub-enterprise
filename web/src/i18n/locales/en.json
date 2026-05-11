@@ -359,7 +359,8 @@
     },
     "actions": {
       "openTokens": "Open Token Management",
-      "openAgentDoc": "Open Agent Guide"
+      "openAgentDoc": "Open Agent Guide",
+      "openClaudeMarketplace": "Open Claude Marketplace"
     }
   },
   "mySkills": {

@@ -1,0 +1,3 @@
+steps:
+  - run: agenthub-cli harness init --package @platform/java-microservice-harness --yes
+  - run: agenthub-cli harness verify --json

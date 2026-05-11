@@ -64,6 +64,12 @@ type RuntimeConfig = {
   authSessionBootstrapEnabled?: string
   authSessionBootstrapProvider?: string
   authSessionBootstrapAuto?: string
+  brandName?: string
+  brandOrgName?: string
+  brandLogoUrl?: string
+  brandTagline?: string
+  brandPrimaryColor?: string
+  brandAccentColor?: string
 }
 
 declare global {

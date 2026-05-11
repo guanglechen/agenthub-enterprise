@@ -1,5 +1,5 @@
 export const AGENTHUB_CLI_PACKAGE_NAME = '@guanglechen/agenthub-cli'
-export const AGENTHUB_CLI_PACKAGE_VERSION = '0.1.1'
+export const AGENTHUB_CLI_PACKAGE_VERSION = '0.1.3'
 export const AGENTHUB_CLI_TARBALL_FILE_NAME = `agenthub-cli-${AGENTHUB_CLI_PACKAGE_VERSION}.tgz`
 
 export function getAppBaseUrl(): string {

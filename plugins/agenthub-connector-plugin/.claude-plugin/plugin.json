@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "agenthub-connector-plugin",
-  "version": "0.1.0",
-  "description": "Connect Claude Code to AgentHub Enterprise, fetch onboarding metadata, build install plans, and install recommended skills into local workspaces.",
+  "version": "0.1.3",
+  "description": "Connect Claude Code to AgentHub Enterprise, fetch onboarding metadata, build install plans, install recommended skills, and run Harness workflows.",
   "author": {
     "name": "Platform Engineering"
   },
@@ -11,7 +11,8 @@
     "enterprise",
     "claude-code",
     "skill-installation",
-    "developer-platform"
+    "developer-platform",
+    "harness"
   ],
   "category": "enterprise-development",
   "skills": "./skills"

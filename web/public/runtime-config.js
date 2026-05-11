@@ -7,4 +7,10 @@ window.__SKILLHUB_RUNTIME_CONFIG__ = {
   authSessionBootstrapEnabled: 'false',
   authSessionBootstrapProvider: '',
   authSessionBootstrapAuto: 'false',
+  brandName: 'HIKVISION AgentHub',
+  brandOrgName: '海康威视',
+  brandLogoUrl: '',
+  brandTagline: '内部研发资产分发平台',
+  brandPrimaryColor: '#D7000F',
+  brandAccentColor: '#8F0E15',
 }

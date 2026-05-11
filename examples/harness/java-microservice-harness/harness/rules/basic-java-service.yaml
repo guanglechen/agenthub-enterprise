@@ -1,0 +1,12 @@
+id: basic-java-service
+title: Basic Java service convention
+description: Validate that a Java microservice has a build file, src/main/java, a Spring Boot entrypoint, and at least one test.
+checks:
+  - id: build-tool-present
+    severity: error
+  - id: main-source-present
+    severity: error
+  - id: spring-boot-application-present
+    severity: warning
+  - id: test-source-present
+    severity: warning

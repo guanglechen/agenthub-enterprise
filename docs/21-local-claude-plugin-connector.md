@@ -1,6 +1,6 @@
 # 本地 Claude Code 插件接入 AgentHub
 
-本文档说明本轮新增的本地 Claude Code 插件最小闭环：
+本文档说明 Claude Code 连接 AgentHub 的最小闭环：
 
 1. 连接 AgentHub 平台
 2. 读取平台用途和默认工作流
@@ -18,6 +18,14 @@
 - `plugins/agenthub-connector-plugin/.claude-plugin/plugin.json`
 - `plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs`
 - `plugins/agenthub-connector-plugin/skills/*/SKILL.md`
+
+根目录同时提供 Claude Code marketplace：
+
+- `.claude-plugin/marketplace.json`
+
+部署后的 Web 发现入口：
+
+- `/registry/claude-marketplace.json`
 
 ## 平台接口
 
@@ -52,24 +60,50 @@ node plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs install-skill --s
 node plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs apply-install-plan --context-file plugins/agenthub-connector-plugin/examples/workspace-context.json --mode required
 ```
 
+## Claude Code Marketplace 接入
+
+本仓库现在提供一个最小官方 marketplace，用来分发 `agenthub-connector-plugin`。
+
+本地验证：
+
+```bash
+agenthub-cli marketplace validate --file .claude-plugin/marketplace.json --json
+agenthub-cli marketplace validate --plugin-dir plugins/agenthub-connector-plugin --json
+```
+
+Claude Code 内测试：
+
+```text
+/plugin marketplace add .
+/plugin install agenthub-connector-plugin@agenthub-enterprise
+```
+
+内网 Git 仓库分发：
+
+```text
+/plugin marketplace add https://git.company.local/platform/agenthub-enterprise.git
+/plugin install agenthub-connector-plugin@agenthub-enterprise
+```
+
 ## 当前边界
 
-当前版本是“本地插件 MVP”，只解决：
+当前版本已经解决：
 
 - 平台连接
 - 平台画像读取
 - 安装计划生成
 - Skill 下载并解包安装
+- Harness 命令包装
+- Claude Code marketplace 兼容分发
 
 还没有解决：
 
-- marketplace 正式发布
 - `.claude/settings.json` 自动注入
 - managed settings / `extraKnownMarketplaces`
 - plugin 依赖编排
 - Draft 自动回传平台
 
-这些属于下一阶段消费侧建设内容。
+这些属于下一阶段消费侧治理内容。
 
 ## 内网部署后的推荐接入方式
 

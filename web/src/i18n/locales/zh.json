@@ -359,7 +359,8 @@
     },
     "actions": {
       "openTokens": "打开 Token 管理",
-      "openAgentDoc": "打开 Agent 文档"
+      "openAgentDoc": "打开 Agent 文档",
+      "openClaudeMarketplace": "打开 Claude 插件市场"
     }
   },
   "mySkills": {

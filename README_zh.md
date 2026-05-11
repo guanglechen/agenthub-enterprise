@@ -330,7 +330,7 @@ SkillHub 设计为与各种智能体平台和框架无缝集成。
 
 ```bash
 # 安装平台直接提供的 npm 包
-npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.0.tgz
+npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.3.tgz
 
 # 创建 Token 后登录
 agenthub-cli login --base-url https://your-agenthub.example.com --token sk_your_api_token_here
@@ -349,7 +349,25 @@ agenthub-cli agent install-plan --assetType microservice --domain order --stage 
 更多说明参见：
 
 - [`docs/23-agenthub-cli-and-agent-onboarding.md`](./docs/23-agenthub-cli-and-agent-onboarding.md)
+- [`docs/26-claude-code-marketplace-compat-design.md`](./docs/26-claude-code-marketplace-compat-design.md)
 - 部署后的 Agent 可读入口：`/registry/skill.md`
+- 部署后的 Claude Code marketplace 发现入口：`/registry/claude-marketplace.json`
+
+### Claude Code 插件市场
+
+AgentHub 仍然以 Skill 市场为主，同时提供 Claude Code marketplace 兼容出口，用于安装官方连接插件：
+
+```bash
+agenthub-cli marketplace validate --file .claude-plugin/marketplace.json --json
+agenthub-cli marketplace validate --plugin-dir plugins/agenthub-connector-plugin --json
+```
+
+在 Claude Code 内安装：
+
+```text
+/plugin marketplace add .
+/plugin install agenthub-connector-plugin@agenthub-enterprise
+```
 
 ### [OpenClaw](https://github.com/openclaw/openclaw)
 
