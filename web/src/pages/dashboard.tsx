@@ -89,7 +89,7 @@ export function DashboardPage() {
                 </p>
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <Link
                 to="/dashboard/publish"
                 className="rounded-2xl bg-brand-gradient px-5 py-4 text-sm font-semibold text-white shadow-[0_16px_30px_-18px_rgba(215,0,15,0.65)] transition-transform hover:-translate-y-0.5"
@@ -99,6 +99,16 @@ export function DashboardPage() {
                   <ArrowUpRight className="h-4 w-4" />
                 </div>
                 <div className="mt-2 text-xs font-normal text-white/80">补齐目录画像、关系和标签</div>
+              </Link>
+              <Link
+                to="/agent"
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-50"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  连接 Agent
+                  <ArrowUpRight className="h-4 w-4" />
+                </div>
+                <div className="mt-2 text-xs font-normal text-slate-500">CLI、插件与 install-plan</div>
               </Link>
               <Link
                 to="/search"

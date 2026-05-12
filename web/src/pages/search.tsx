@@ -20,7 +20,7 @@ import { Input } from '@/shared/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, normalizeSelectValue } from '@/shared/ui/select'
 import { APP_SHELL_PAGE_CLASS_NAME } from '@/app/page-shell-style'
 import { AgentDiscoveryPanel } from '@/shared/components/agent-discovery-panel'
-import { ASSET_FAMILY_OPTIONS } from '@/shared/lib/asset-taxonomy'
+import { ASSET_FAMILY_OPTIONS, MARKETPLACE_INTENT_OPTIONS } from '@/shared/lib/asset-taxonomy'
 
 const PAGE_SIZE = 12
 const EMPTY_SELECT_VALUE = '__all__'
@@ -303,6 +303,26 @@ export function SearchPage() {
     })
   }
 
+  const handleIntentSelect = (intent: (typeof MARKETPLACE_INTENT_OPTIONS)[number]) => {
+    setQueryInput(intent.search.q ?? '')
+    setDomainInput('')
+    setStackInput(intent.search.stack ?? '')
+    navigate({
+      to: '/search',
+      search: buildSearchState({
+        q: intent.search.q ?? '',
+        label: intent.search.label ?? '',
+        assetType: intent.search.assetType ?? '',
+        stage: intent.search.stage ?? '',
+        topology: intent.search.topology ?? '',
+        stack: intent.search.stack ?? '',
+        sort: intent.search.sort ?? 'recommended',
+        page: 0,
+        starredOnly: false,
+      }),
+    })
+  }
+
   const handleStarredToggle = () => {
     if (!isAuthenticated) {
       navigate({
@@ -403,6 +423,34 @@ export function SearchPage() {
       </section>
 
       <AgentDiscoveryPanel compact />
+
+      <section className="enterprise-panel p-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">Discovery intents</div>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">先选场景，再找 Skill</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              把“初始化工程、安装插件、补业务知识、接入质量治理”等常见任务转成可分享的搜索条件，降低人和 Agent 的首次使用门槛。
+            </p>
+          </div>
+          <a href="/agent" className="text-sm font-semibold text-primary hover:underline">
+            查看 Agent 接入命令
+          </a>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {MARKETPLACE_INTENT_OPTIONS.map((intent) => (
+            <button
+              key={intent.id}
+              type="button"
+              onClick={() => handleIntentSelect(intent)}
+              className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2"
+            >
+              <div className="text-sm font-semibold text-slate-950">{intent.title}</div>
+              <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{intent.description}</p>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="enterprise-panel p-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">

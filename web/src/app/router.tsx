@@ -66,6 +66,7 @@ const RegisterPage = createLazyRouteComponent(() => import('@/pages/register'), 
 const ResetPasswordPage = createLazyRouteComponent(() => import('@/pages/reset-password'), 'ResetPasswordPage')
 const PrivacyPolicyPage = createLazyRouteComponent(() => import('@/pages/privacy'), 'PrivacyPolicyPage')
 const SearchPage = createLazyRouteComponent(() => import('@/pages/search'), 'SearchPage')
+const AgentOnboardingPage = createLazyRouteComponent(() => import('@/pages/agent-onboarding'), 'AgentOnboardingPage')
 const TermsOfServicePage = createLazyRouteComponent(() => import('@/pages/terms'), 'TermsOfServicePage')
 const NamespacePage = createLazyRouteComponent(() => import('@/pages/namespace'), 'NamespacePage')
 const SkillDetailPage = createLazyRouteComponent(() => import('@/pages/skill-detail'), 'SkillDetailPage')
@@ -253,6 +254,12 @@ const searchRoute = createRoute({
       starredOnly: search.starredOnly === true || search.starredOnly === 'true',
     }
   },
+})
+
+const agentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'agent',
+  component: AgentOnboardingPage,
 })
 
 const termsRoute = createRoute({
@@ -477,6 +484,7 @@ const routeTree = rootRoute.addChildren([
   resetPasswordRoute,
   privacyRoute,
   searchRoute,
+  agentRoute,
   termsRoute,
   namespaceRoute,
   skillDetailRoute,

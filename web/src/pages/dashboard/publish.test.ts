@@ -6,7 +6,7 @@ const useSearchMock = vi.fn()
 const selectRecords: Array<{ value?: string }> = []
 
 vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => vi.fn(),
+  Link: ({ children }: { children: unknown }) => children,
   useSearch: () => useSearchMock(),
 }))
 

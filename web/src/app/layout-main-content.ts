@@ -25,7 +25,7 @@ export function getAppMainContentLayout(pathname: string): AppMainContentLayout 
     }
   }
 
-  if (pathname === '/search') {
+  if (pathname === '/search' || pathname === '/agent') {
     return {
       mainClassName: CENTERED_MAIN_CLASS_NAME,
       contentClassName: CENTERED_SEARCH_CONTENT_CLASS_NAME,

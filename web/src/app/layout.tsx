@@ -1,13 +1,14 @@
 import { Suspense, useEffect, useState } from 'react'
 import { Outlet, Link, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Building2, ChevronRight, KeyRound, LayoutDashboard, Search as SearchIcon, ShieldCheck, UploadCloud } from 'lucide-react'
+import { Bot, Building2, ChevronRight, KeyRound, LayoutDashboard, Search as SearchIcon, ShieldCheck, UploadCloud } from 'lucide-react'
 import { useAuth } from '@/features/auth/use-auth'
 import { LanguageSwitcher } from '@/shared/components/language-switcher'
 import { UserMenu } from '@/shared/components/user-menu'
 import { NotificationBell } from '@/features/notification/notification-bell'
 import { BrandMark } from '@/shared/components/brand-mark'
 import { cn } from '@/shared/lib/utils'
+import { isOpenAccessRuntimeEnabled } from '@/api/client'
 import { getAppHeaderClassName } from './layout-header-style'
 import { getAppMainContentLayout, resolveAppMainContentPathname } from './layout-main-content'
 
@@ -40,6 +41,14 @@ function resolveBreadcrumb(pathname: string) {
       eyebrow: '企业技能广场',
       title: '发现并安装企业能力',
       description: '按资产类型、业务域、阶段和技术栈组织内部 Agent 资产。',
+    }
+  }
+
+  if (pathname === '/agent') {
+    return {
+      eyebrow: 'Agent 接入',
+      title: '连接 Claude / Codex 到企业 Skill 市场',
+      description: '通过 llms.txt、well-known、CLI 和 install-plan 让 Agent 自动搜索、安装和维护 Skill。',
     }
   }
 
@@ -131,6 +140,9 @@ export function Layout() {
   const mainContentLayout = getAppMainContentLayout(contentLayoutPathname)
   const enterpriseShell = isEnterpriseShellPath(pathname)
   const breadcrumb = resolveBreadcrumb(pathname)
+  const showNotificationBell = Boolean(user) && !isOpenAccessRuntimeEnabled()
+  const focusedTaskPath = pathname === '/dashboard/publish' || pathname.startsWith('/space/')
+  const showSidebarAgentHint = pathname !== '/dashboard/publish'
 
   useEffect(() => {
     const updateHeaderElevation = () => {
@@ -182,6 +194,12 @@ export function Layout() {
       description: '按目录发现能力',
       to: '/search',
       icon: SearchIcon,
+    },
+    {
+      label: 'Agent 接入',
+      description: 'CLI、插件与 install-plan',
+      to: '/agent',
+      icon: Bot,
     },
     {
       label: '发布中心',
@@ -242,22 +260,24 @@ export function Layout() {
                 })}
               </nav>
 
-              <div className="mt-8 rounded-[24px] border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                  <ShieldCheck className="h-4 w-4 text-rose-300" />
-                  Agent 接入提示
+              {showSidebarAgentHint ? (
+                <div className="mt-8 rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <ShieldCheck className="h-4 w-4 text-rose-300" />
+                    Agent 接入提示
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-white/65">
+                    先通过本地插件或 CLI 连接平台，再根据 install-plan 拉取基础 skill 到 `.claude/skills`。
+                  </p>
+                  <Link
+                    to="/agent"
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-white transition-opacity hover:opacity-85"
+                  >
+                    查看接入流程
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-white/65">
-                  先通过本地插件或 CLI 连接平台，再根据 install-plan 拉取基础 skill 到 `.claude/skills`。
-                </p>
-                <Link
-                  to="/dashboard/tokens"
-                  className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-white transition-opacity hover:opacity-85"
-                >
-                  查看凭证与 CLI
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </div>
+              ) : null}
             </div>
           </aside>
 
@@ -278,7 +298,7 @@ export function Layout() {
 
                   <div className="flex items-center gap-3 self-start text-[15px] text-slate-600">
                     <LanguageSwitcher />
-                    {user && <NotificationBell />}
+                    {showNotificationBell && <NotificationBell />}
                     {isLoading ? null : user ? (
                       <UserMenu user={user} />
                     ) : (
@@ -314,7 +334,8 @@ export function Layout() {
                   })}
                 </div>
 
-                <div className="hidden items-center gap-3 xl:flex">
+                {!focusedTaskPath ? (
+                  <div className="hidden items-center gap-3 xl:flex">
                   <Link
                     to="/search"
                     search={{ q: '', sort: 'recommended', page: 0, starredOnly: false }}
@@ -331,7 +352,8 @@ export function Layout() {
                       发布 Skill
                     </Link>
                   ) : null}
-                </div>
+                  </div>
+                ) : null}
               </div>
             </header>
 
@@ -413,7 +435,7 @@ export function Layout() {
 
         <div className="flex items-center gap-6 text-[15px] font-normal" style={{ color: 'hsl(var(--text-secondary))' }}>
           <LanguageSwitcher />
-          {user && <NotificationBell />}
+          {showNotificationBell && <NotificationBell />}
           {isLoading ? null : user ? (
             <UserMenu user={user} />
           ) : (

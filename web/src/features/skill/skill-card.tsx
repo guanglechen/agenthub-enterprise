@@ -4,9 +4,11 @@ import { useStar } from '@/features/social/use-star'
 import { Card } from '@/shared/ui/card'
 import { NamespaceBadge } from '@/shared/components/namespace-badge'
 import { buildCatalogBadgeSummary, buildCatalogMetaSummary } from '@/shared/lib/catalog'
+import { resolveAssetFamilyLabel } from '@/shared/lib/asset-taxonomy'
 import { getHeadlineVersion } from '@/shared/lib/skill-lifecycle'
 import { formatCompactCount } from '@/shared/lib/number-format'
-import { Bookmark } from 'lucide-react'
+import { useCopyToClipboard } from '@/shared/lib/clipboard'
+import { Bookmark, Copy, GitBranch, TerminalSquare } from 'lucide-react'
 
 interface SkillCardProps {
   skill: SkillSummary
@@ -20,11 +22,23 @@ interface SkillCardProps {
 export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCardProps) {
   const { isAuthenticated } = useAuth()
   const { data: starStatus } = useStar(skill.id, highlightStarred && isAuthenticated)
+  const [copiedInstall, copyInstall] = useCopyToClipboard()
+  const [copiedInspect, copyInspect] = useCopyToClipboard()
   const showStarredHighlight = highlightStarred && isAuthenticated && starStatus?.starred
   const headlineVersion = getHeadlineVersion(skill)
   const isInteractive = typeof onClick === 'function'
   const badgeSummary = buildCatalogBadgeSummary(skill.catalogProfile)
   const metaSummary = buildCatalogMetaSummary(skill.catalogProfile)
+  const assetFamilyLabel = resolveAssetFamilyLabel(skill.catalogProfile)
+  const installCommand = `agenthub-cli install --skill @${skill.namespace}/${skill.slug} --json`
+  const inspectCommand = `agenthub-cli inspect --skill @${skill.namespace}/${skill.slug} --json`
+  const recommendationReasons = [
+    skill.catalogProfile?.domain ? '同业务域' : null,
+    skill.catalogProfile?.topology ? '同拓扑' : null,
+    (skill.catalogProfile?.stack?.length ?? 0) > 0 ? '共享技术栈' : null,
+    (skill.relationCount ?? 0) > 0 ? '关联能力' : null,
+    skill.downloadCount > 0 ? '高复用' : null,
+  ].filter(Boolean).slice(0, 3) as string[]
   const scoreLabel =
     typeof skill.recommendationScore === 'number' ? `${Math.round(skill.recommendationScore * 100)} / 100` : undefined
 
@@ -54,6 +68,15 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
             <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors" style={{ color: 'hsl(var(--foreground))' }}>
               {skill.displayName}
             </h3>
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center rounded-full bg-slate-950 px-2.5 py-1 text-[11px] font-semibold text-white">
+                {assetFamilyLabel}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                <TerminalSquare className="h-3 w-3" />
+                Agent Ready
+              </span>
+            </div>
             {badgeSummary.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {badgeSummary.map((badge) => (
@@ -94,6 +117,22 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
           </div>
         )}
 
+        {recommendationReasons.length > 0 && (
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-3 py-3">
+            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
+              <GitBranch className="h-3.5 w-3.5" />
+              推荐理由
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {recommendationReasons.map((reason) => (
+                <span key={reason} className="rounded-full bg-white px-2.5 py-1 text-[11px] text-emerald-700">
+                  {reason}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-auto flex flex-wrap items-center gap-4 border-t border-slate-200/80 pt-4 text-xs text-muted-foreground">
           {headlineVersion && (
             <span className="rounded-full bg-secondary/60 px-2.5 py-1 font-mono">
@@ -125,6 +164,30 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
               {skill.ratingAvg.toFixed(1)}
             </span>
           )}
+        </div>
+        <div className="grid gap-2 border-t border-slate-200/80 pt-4 sm:grid-cols-2">
+          <button
+            type="button"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            onClick={(event) => {
+              event.stopPropagation()
+              copyInspect(inspectCommand)
+            }}
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {copiedInspect ? '已复制' : '复制 inspect'}
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            onClick={(event) => {
+              event.stopPropagation()
+              copyInstall(installCommand)
+            }}
+          >
+            <TerminalSquare className="h-3.5 w-3.5" />
+            {copiedInstall ? '已复制' : '复制安装'}
+          </button>
         </div>
       </div>
     </Card>

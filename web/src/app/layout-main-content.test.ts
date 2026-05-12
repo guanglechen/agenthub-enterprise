@@ -25,6 +25,13 @@ describe('getAppMainContentLayout', () => {
     expect(layout.contentClassName).toContain('max-w-[1360px]')
   })
 
+  it('uses the same wide enterprise frame for the Agent onboarding page', () => {
+    expect(getAppMainContentLayout('/agent')).toEqual({
+      mainClassName: CENTERED_MAIN_CLASS_NAME,
+      contentClassName: CENTERED_SEARCH_CONTENT_CLASS_NAME,
+    })
+  })
+
   it('centers all dashboard sub-pages within a slightly narrower content frame', () => {
     const layout = getAppMainContentLayout('/dashboard/skills')
 

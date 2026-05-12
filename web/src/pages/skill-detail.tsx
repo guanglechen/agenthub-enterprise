@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate, useRouterState, useSearch } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -41,6 +41,7 @@ import {
   getCatalogOptionLabel,
 } from '@/shared/lib/catalog'
 import { NamespaceBadge } from '@/shared/components/namespace-badge'
+import { CopyCommandBlock } from '@/shared/components/copy-command-block'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shared/ui/tabs'
 import { Button } from '@/shared/ui/button'
 import { Card } from '@/shared/ui/card'
@@ -50,6 +51,8 @@ import { Input } from '@/shared/ui/input'
 import { Textarea } from '@/shared/ui/textarea'
 import { toast } from '@/shared/lib/toast'
 import { cn } from '@/shared/lib/utils'
+import { resolveAssetFamilyLabel } from '@/shared/lib/asset-taxonomy'
+import { getAppBaseUrl } from '@/shared/lib/agenthub-cli'
 import {
   useSkillDetail,
   useSkillVersions,
@@ -191,6 +194,20 @@ export function SkillDetailPage() {
   const isVersionDownloadable = selectedVersionEntry?.status === 'PUBLISHED' && (selectedVersionEntry?.downloadAvailable ?? false)
   const catalogProfile = skill?.catalogProfile
   const relatedSkills = skill?.relatedSkills ?? []
+  const baseUrl = useMemo(() => getAppBaseUrl(), [])
+  const assetFamilyLabel = resolveAssetFamilyLabel(catalogProfile)
+  const isHarnessPackage = assetFamilyLabel === 'Harness Package'
+  const skillCoordinate = `@${namespace}/${slug}`
+  const agentInstallCommand = [
+    `agenthub-cli inspect --skill ${skillCoordinate} --base-url ${baseUrl} --json`,
+    `agenthub-cli install --skill ${skillCoordinate} --base-url ${baseUrl} --json`,
+    `agenthub-cli recommend --skill ${skillCoordinate} --base-url ${baseUrl} --json`,
+  ].join('\n')
+  const harnessCommand = [
+    `agenthub-cli harness browse --skill ${skillCoordinate} --json`,
+    `agenthub-cli harness apply --skill ${skillCoordinate} --target ./service --yes`,
+    `agenthub-cli harness verify --target ./service --json`,
+  ].join('\n')
 
   useEffect(() => {
     // Recompute collapse rules whenever rendered documentation height changes so the page can keep
@@ -826,6 +843,61 @@ export function SkillDetailPage() {
               )}
             </div>
           )}
+
+          <Card className="enterprise-panel border-0 p-5 shadow-none">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-rose-700">Install decision</div>
+                <h2 className="mt-2 text-xl font-semibold text-slate-950">安装决策与验证方式</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  详情页需要让人和 Agent 不打开外部文档也能判断是否安装、怎么安装、安装后怎么验证。
+                </p>
+              </div>
+              <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">
+                {assetFamilyLabel}
+              </span>
+            </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <div className="rounded-[22px] border border-slate-200 bg-white p-4">
+                <div className="text-sm font-semibold text-slate-950">适合什么</div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {catalogProfile?.stage
+                    ? `适合 ${getCatalogOptionLabel(STAGE_OPTIONS, catalogProfile.stage) ?? catalogProfile.stage} 阶段使用。`
+                    : '适合需要复用企业 Skill、插件、知识或工程能力的项目。'}
+                  {catalogProfile?.domain ? `业务域：${catalogProfile.domain}。` : ''}
+                </p>
+              </div>
+              <div className="rounded-[22px] border border-slate-200 bg-white p-4">
+                <div className="text-sm font-semibold text-slate-950">不适合什么</div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  不建议在未确认业务域、技术栈或拓扑匹配时直接安装。涉及真实密钥、密码和私有凭证的内容不应进入 Skill 包。
+                </p>
+              </div>
+              <div className="rounded-[22px] border border-slate-200 bg-white p-4">
+                <div className="text-sm font-semibold text-slate-950">安装后验证</div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  使用 `agenthub-cli inspect` 查看资产画像，安装后运行目标工程测试或 Harness verify，并通过 recommend 检查是否进入正确推荐链路。
+                </p>
+              </div>
+            </div>
+            <div className="mt-5">
+              <CopyCommandBlock
+                title="Agent 可执行命令"
+                description="Claude / Codex 可以复制这组命令完成检查、安装和推荐验证。"
+                code={agentInstallCommand}
+              />
+            </div>
+            {isHarnessPackage ? (
+              <div className="mt-5">
+                <CopyCommandBlock
+                  title="Harness Package 命令"
+                  description="用于 Java 微服务工程知识包的浏览、应用和验证。"
+                  code={harnessCommand}
+                />
+              </div>
+            ) : null}
+          </Card>
+
           {(skill.labels?.length ?? 0) > 0 && (
             <div className="flex flex-wrap gap-2">
               {skill.labels!.map((label) => (
