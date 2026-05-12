@@ -88,7 +88,7 @@ function resolveBreadcrumb(pathname: string) {
     return {
       eyebrow: '企业工作台',
       title: '统一查看 Agent 资产工作区',
-      description: '聚合团队空间、推荐基线、最近维护资产和操作入口。',
+      description: '聚合状态总览、最近维护资产、团队空间和少量续作入口。',
     }
   }
 
@@ -141,7 +141,6 @@ export function Layout() {
   const enterpriseShell = isEnterpriseShellPath(pathname)
   const breadcrumb = resolveBreadcrumb(pathname)
   const showNotificationBell = Boolean(user) && !isOpenAccessRuntimeEnabled()
-  const focusedTaskPath = pathname === '/dashboard/publish' || pathname.startsWith('/space/')
   const showSidebarAgentHint = pathname !== '/dashboard/publish'
 
   useEffect(() => {
@@ -184,7 +183,7 @@ export function Layout() {
   }> = [
     {
       label: '工作台',
-      description: '总览与推荐基线',
+      description: '总览与续作入口',
       to: '/dashboard',
       auth: true,
       icon: LayoutDashboard,
@@ -283,7 +282,7 @@ export function Layout() {
 
           <div className="flex min-h-screen flex-1 flex-col">
             <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/88 backdrop-blur">
-              <div className="flex flex-col gap-4 px-5 py-5 sm:px-6 lg:px-10">
+              <div className="flex flex-col gap-4 px-5 py-4 sm:px-6 lg:px-10">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="text-xs uppercase tracking-[0.24em] text-slate-400">{breadcrumb.eyebrow}</div>
@@ -333,27 +332,6 @@ export function Layout() {
                     )
                   })}
                 </div>
-
-                {!focusedTaskPath ? (
-                  <div className="hidden items-center gap-3 xl:flex">
-                  <Link
-                    to="/search"
-                    search={{ q: '', sort: 'recommended', page: 0, starredOnly: false }}
-                    className="flex min-w-[380px] items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-[0_10px_26px_-18px_rgba(15,23,42,0.35)] transition-colors hover:bg-slate-50"
-                  >
-                    <SearchIcon className="h-4 w-4" />
-                    搜索技能、脚手架、业务能力或治理组件
-                  </Link>
-                  {user ? (
-                    <Link
-                      to="/dashboard/publish"
-                      className="rounded-full bg-brand-gradient px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_-18px_rgba(215,0,15,0.65)] transition-transform hover:-translate-y-0.5"
-                    >
-                      发布 Skill
-                    </Link>
-                  ) : null}
-                  </div>
-                ) : null}
               </div>
             </header>
 

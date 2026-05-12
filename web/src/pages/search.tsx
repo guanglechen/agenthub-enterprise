@@ -19,8 +19,7 @@ import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, normalizeSelectValue } from '@/shared/ui/select'
 import { APP_SHELL_PAGE_CLASS_NAME } from '@/app/page-shell-style'
-import { AgentDiscoveryPanel } from '@/shared/components/agent-discovery-panel'
-import { ASSET_FAMILY_OPTIONS, MARKETPLACE_INTENT_OPTIONS } from '@/shared/lib/asset-taxonomy'
+import { MARKETPLACE_INTENT_OPTIONS } from '@/shared/lib/asset-taxonomy'
 
 const PAGE_SIZE = 12
 const EMPTY_SELECT_VALUE = '__all__'
@@ -281,28 +280,6 @@ export function SearchPage() {
     })
   }
 
-  const handleAssetFamilySelect = (family: (typeof ASSET_FAMILY_OPTIONS)[number]) => {
-    setQueryInput(family.search.q ?? '')
-    setDomainInput('')
-    setStackInput(family.search.stack ?? '')
-    navigate({
-      to: '/search',
-      search: {
-        ...buildSearchState({
-          q: family.search.q ?? '',
-          label: family.search.label ?? '',
-          assetType: family.search.assetType ?? '',
-          stage: family.search.stage ?? '',
-          topology: family.search.topology ?? '',
-          stack: family.search.stack ?? '',
-          sort: family.search.sort ?? 'recommended',
-          page: 0,
-          starredOnly: false,
-        }),
-      },
-    })
-  }
-
   const handleIntentSelect = (intent: (typeof MARKETPLACE_INTENT_OPTIONS)[number]) => {
     setQueryInput(intent.search.q ?? '')
     setDomainInput('')
@@ -384,35 +361,17 @@ export function SearchPage() {
   return (
     <div className={APP_SHELL_PAGE_CLASS_NAME}>
       <section className="enterprise-panel enterprise-surface-stripe p-8">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white">
-              <SearchIcon className="h-3.5 w-3.5" />
-              Enterprise Marketplace
-            </div>
-            <div className="space-y-3">
-              <h1 className="text-4xl font-bold text-slate-950">技能广场</h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-600">
-                通过资产类型、业务域、阶段、拓扑和标签筛选企业内部的 Agent 能力，快速找到适合当前项目的脚手架、业务包和治理组件。
-              </p>
-            </div>
+        <div className="max-w-4xl space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white">
+            <SearchIcon className="h-3.5 w-3.5" />
+            Enterprise Marketplace
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px]">
-            <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-4">
-              <div className="text-sm text-slate-500">当前结果</div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{resultCount}</div>
-              <div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-400">visible assets</div>
-            </div>
-            <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-4">
-              <div className="text-sm text-slate-500">排序模式</div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-                {sort === 'recommended' ? '推荐' : sort === 'downloads' ? '下载' : sort === 'relevance' ? '相关' : '最新'}
-              </div>
-              <div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-400">ranking</div>
-            </div>
+          <div className="space-y-3">
+            <h1 className="text-4xl font-bold text-slate-950">技能广场</h1>
+            <p className="max-w-3xl text-base leading-7 text-slate-600">
+              先搜索，再用左侧筛选收敛。场景按钮只负责快速填充搜索条件，避免在广场里重复堆叠多套发现入口。
+            </p>
           </div>
-        </div>
-        <div className="mt-6 max-w-4xl">
           <SearchBar
             value={queryInput}
             isSearching={isUpdatingResults}
@@ -420,59 +379,16 @@ export function SearchPage() {
             onSearch={handleSearch}
           />
         </div>
-      </section>
-
-      <AgentDiscoveryPanel compact />
-
-      <section className="enterprise-panel p-6">
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">Discovery intents</div>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">先选场景，再找 Skill</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              把“初始化工程、安装插件、补业务知识、接入质量治理”等常见任务转成可分享的搜索条件，降低人和 Agent 的首次使用门槛。
-            </p>
-          </div>
-          <a href="/agent" className="text-sm font-semibold text-primary hover:underline">
-            查看 Agent 接入命令
-          </a>
-        </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-6 flex flex-wrap gap-2">
           {MARKETPLACE_INTENT_OPTIONS.map((intent) => (
             <button
               key={intent.id}
               type="button"
               onClick={() => handleIntentSelect(intent)}
-              className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2"
+              title={intent.description}
             >
-              <div className="text-sm font-semibold text-slate-950">{intent.title}</div>
-              <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{intent.description}</p>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="enterprise-panel p-6">
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">Asset families</div>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">按资产族和使用场景发现</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              平台内容不只是单一 Skill。插件、Agent Skill、产品知识、业务知识、开发工具和 Harness Package 都通过 Skill 市场统一分发。
-            </p>
-          </div>
-          <div className="text-sm text-slate-500">点击卡片会组合现有搜索筛选，不引入新的破坏性协议。</div>
-        </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
-          {ASSET_FAMILY_OPTIONS.map((family) => (
-            <button
-              key={family.id}
-              type="button"
-              onClick={() => handleAssetFamilySelect(family)}
-              className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2"
-            >
-              <div className="text-sm font-semibold text-slate-950">{family.title}</div>
-              <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{family.description}</p>
+              {intent.title}
             </button>
           ))}
         </div>

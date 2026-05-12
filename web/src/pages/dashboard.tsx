@@ -1,20 +1,14 @@
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { ArrowUpRight, Boxes, Building2, FolderCog, ShieldCheck, Sparkles, Workflow } from 'lucide-react'
+import { ArrowUpRight, Boxes, Building2, FolderCog, ShieldCheck, Sparkles } from 'lucide-react'
 import { useAuth } from '@/features/auth/use-auth'
 import type { SkillSummary } from '@/api/types'
 import { useMySkills } from '@/shared/hooks/use-user-queries'
 import { useMyNamespaces } from '@/shared/hooks/use-namespace-queries'
-import { useSearchSkills } from '@/shared/hooks/use-skill-queries'
 import { canViewGovernanceCenter } from '@/shared/lib/governance-access'
-import { buildCatalogBadgeSummary } from '@/shared/lib/catalog'
 import { getHeadlineVersion } from '@/shared/lib/skill-lifecycle'
-import { TokenList } from '@/features/token/token-list'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
 import { APP_SHELL_PAGE_CLASS_NAME } from '@/app/page-shell-style'
-import { AgenthubOnboardingGuide } from '@/shared/components/agenthub-onboarding-guide'
-import { AgentDiscoveryPanel } from '@/shared/components/agent-discovery-panel'
-import { ASSET_FAMILY_OPTIONS } from '@/shared/lib/asset-taxonomy'
 import { limitPreviewItems } from './dashboard-preview'
 
 const DASHBOARD_PREVIEW_LIMIT = 5
@@ -23,7 +17,7 @@ const DASHBOARD_PREVIEW_LIMIT = 5
  * Default dashboard landing page for authenticated users.
  *
  * It surfaces account context, quick links, and a lightweight preview of the user's latest skills
- * and tokens before they move into more specialized dashboard sub-pages.
+ * before they move into more specialized dashboard sub-pages.
  */
 export function DashboardPage() {
   const skillPreviewPageSize = DASHBOARD_PREVIEW_LIMIT
@@ -32,19 +26,8 @@ export function DashboardPage() {
   const governanceVisible = canViewGovernanceCenter(user?.platformRoles)
   const { data: skillPage, isLoading: isLoadingSkills } = useMySkills({ page: 0, size: skillPreviewPageSize })
   const { data: namespaces, isLoading: isLoadingNamespaces } = useMyNamespaces()
-  const { data: scaffoldAssets, isLoading: isLoadingScaffolds } = useSearchSkills({
-    assetType: 'scaffold',
-    sort: 'recommended',
-    size: 4,
-  })
-  const { data: qualityAssets, isLoading: isLoadingQuality } = useSearchSkills({
-    assetType: 'quality',
-    sort: 'recommended',
-    size: 4,
-  })
   const skillPreview = limitPreviewItems<SkillSummary>(skillPage?.items ?? [], DASHBOARD_PREVIEW_LIMIT)
   const teamSpaces = namespaces?.filter((namespace) => namespace.type === 'TEAM') ?? []
-  const recommendedAssets = [...(scaffoldAssets?.items ?? []), ...(qualityAssets?.items ?? [])].slice(0, 4)
   const workspaceStats = [
     {
       label: '团队空间',
@@ -59,9 +42,9 @@ export function DashboardPage() {
       icon: Boxes,
     },
     {
-      label: '推荐基线',
-      value: isLoadingScaffolds || isLoadingQuality ? '...' : String(recommendedAssets.length),
-      hint: '脚手架与质量治理',
+      label: '最近维护',
+      value: isLoadingSkills ? '...' : String(skillPreview.items.length),
+      hint: '工作台只显示少量续作项',
       icon: ShieldCheck,
     },
     {
@@ -85,7 +68,7 @@ export function DashboardPage() {
               <div className="space-y-3">
                 <h1 className="text-4xl font-bold" style={{ color: 'hsl(var(--foreground))' }}>{t('dashboard.title')}</h1>
                 <p className="max-w-2xl text-base leading-7" style={{ color: 'hsl(var(--text-secondary))' }}>
-                  {t('dashboard.subtitle')} 这里聚合团队空间、推荐基线、最近维护能力和凭证入口，方便你按企业交付流程组织 Agent 资产。
+                  {t('dashboard.subtitle')} 工作台只保留状态总览、最近维护和团队空间；发现、筛选和推荐统一进入技能广场。
                 </p>
               </div>
             </div>
@@ -167,50 +150,6 @@ export function DashboardPage() {
         </section>
       </div>
 
-      <AgentDiscoveryPanel />
-
-      <section className="enterprise-panel p-6">
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">Skill market taxonomy</div>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">平台资产族</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              所有内容仍以 Skill 包分发，但页面按插件、知识、工具、业务能力和 Harness 场景组织，方便人和 Agent 快速判断该安装什么。
-            </p>
-          </div>
-          <Link
-            to="/search"
-            search={{ q: '', sort: 'recommended', page: 0, starredOnly: false }}
-            className="text-sm font-semibold text-primary hover:underline"
-          >
-            进入技能广场
-          </Link>
-        </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
-          {ASSET_FAMILY_OPTIONS.map((family) => (
-            <Link
-              key={family.id}
-              to="/search"
-              search={{
-                q: family.search.q ?? '',
-                assetType: family.search.assetType,
-                stage: family.search.stage,
-                topology: family.search.topology,
-                stack: family.search.stack,
-                label: family.search.label,
-                sort: family.search.sort ?? 'recommended',
-                page: 0,
-                starredOnly: false,
-              }}
-              className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm"
-            >
-              <div className="text-sm font-semibold text-slate-950">{family.title}</div>
-              <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{family.description}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {workspaceStats.map((item) => (
           <div key={item.label} className="enterprise-panel enterprise-stat-card p-5">
@@ -228,67 +167,8 @@ export function DashboardPage() {
         ))}
       </div>
 
-      <AgenthubOnboardingGuide />
-
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)]">
         <div className="space-y-6">
-          <Card className="enterprise-panel border-0 shadow-none">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Workflow className="h-5 w-5 text-primary" />
-                    推荐能力基线
-                  </CardTitle>
-                  <CardDescription>根据企业目录和推荐排序，优先给你当前工作台补齐脚手架与质量治理能力。</CardDescription>
-                </div>
-                <Link to="/search" search={{ q: '', sort: 'recommended', page: 0, starredOnly: false }} className="text-sm font-semibold text-primary hover:underline">
-                  查看全部
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {isLoadingScaffolds || isLoadingQuality ? (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <div key={index} className="h-28 animate-shimmer rounded-2xl" />
-                  ))}
-                </div>
-              ) : recommendedAssets.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {recommendedAssets.map((skill) => (
-                    <Link
-                      key={skill.id}
-                      to="/space/$namespace/$slug"
-                      params={{ namespace: skill.namespace, slug: encodeURIComponent(skill.slug) }}
-                      className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-slate-950">{skill.displayName}</div>
-                          <div className="mt-1 truncate text-xs text-slate-500">@{skill.namespace}</div>
-                        </div>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-600">
-                          {skill.catalogProfile?.assetType ?? 'catalog'}
-                        </span>
-                      </div>
-                      {skill.summary ? <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">{skill.summary}</p> : null}
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {buildCatalogBadgeSummary(skill.catalogProfile).slice(0, 3).map((badge) => (
-                          <span key={badge} className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-700">
-                            {badge}
-                          </span>
-                        ))}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">当前还没有可推荐的企业基线，请先在技能广场中补充脚手架或质量治理能力。</div>
-              )}
-            </CardContent>
-          </Card>
-
           <Card className="enterprise-panel border-0 shadow-none">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between gap-4">
@@ -404,10 +284,6 @@ export function DashboardPage() {
               ) : null}
             </CardContent>
           </Card>
-
-          <div className="enterprise-panel p-6">
-            <TokenList />
-          </div>
         </div>
       </div>
     </div>

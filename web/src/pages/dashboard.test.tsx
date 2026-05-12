@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
-// DashboardPage is a component-only page that wires auth context, skill previews,
-// and token list. No exported pure functions or constants beyond the component.
+// DashboardPage is a component-only page that wires auth context, workspace stats,
+// skill previews, and team-space shortcuts. No exported pure functions or constants beyond the component.
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children }: { children: unknown }) => children,
@@ -37,27 +37,12 @@ vi.mock('@/shared/hooks/use-namespace-queries', () => ({
   }),
 }))
 
-vi.mock('@/shared/hooks/use-skill-queries', () => ({
-  useSearchSkills: () => ({
-    data: { items: [] },
-    isLoading: false,
-  }),
-}))
-
 vi.mock('@/shared/lib/governance-access', () => ({
   canViewGovernanceCenter: () => false,
 }))
 
 vi.mock('@/shared/lib/skill-lifecycle', () => ({
   getHeadlineVersion: () => null,
-}))
-
-vi.mock('@/features/token/token-list', () => ({
-  TokenList: () => null,
-}))
-
-vi.mock('@/shared/components/agenthub-onboarding-guide', () => ({
-  AgenthubOnboardingGuide: () => <div>onboarding-guide</div>,
 }))
 
 vi.mock('@/shared/ui/card', () => ({
@@ -85,7 +70,7 @@ describe('DashboardPage', () => {
 
     expect(html).toContain('dashboard.title')
     expect(html).toContain('发布新 Skill')
-    expect(html).toContain('onboarding-guide')
+    expect(html).toContain('发现、筛选和推荐统一进入技能广场')
   })
 
   it('shows the my-skills preview section', () => {
