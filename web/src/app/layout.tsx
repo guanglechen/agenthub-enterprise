@@ -353,7 +353,7 @@ export function Layout() {
 
             <footer className="border-t border-slate-200/80 bg-white/72 px-5 py-4 text-xs text-slate-500 backdrop-blur sm:px-6 lg:px-10">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <span>HIKVISION AgentHub · 海康威视内部研发资产分发平台</span>
+                <span>海康威视 AgentHub · 内部研发资产分发平台</span>
                 <div className="flex items-center gap-2">
                   <span>Skill / Plugin / CLI / Agent</span>
                   <span className="text-slate-300">|</span>

@@ -256,15 +256,15 @@ agenthub-cli whoami --json
 
 ## Branding
 
-Default deployment branding is `HIKVISION AgentHub / 海康威视内部研发资产分发平台`.
+Default deployment branding is `海康威视 / AgentHub / 内部研发资产分发平台`.
 
 Private deployments can override the visible brand without rebuilding the frontend:
 
 ```bash
-SKILLHUB_WEB_BRAND_NAME="HIKVISION AgentHub"
+SKILLHUB_WEB_BRAND_NAME="AgentHub"
 SKILLHUB_WEB_BRAND_ORG_NAME="海康威视"
 SKILLHUB_WEB_BRAND_TAGLINE="内部研发资产分发平台"
-SKILLHUB_WEB_BRAND_LOGO_URL="https://internal.example.com/logo.svg"
+SKILLHUB_WEB_BRAND_LOGO_URL="/brand/hikvision-logo.svg"
 ```
 
 ## Coordinate Rules

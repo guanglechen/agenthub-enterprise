@@ -45,9 +45,10 @@ Token rule:
 
 Branding defaults:
 
-- `HIKVISION AgentHub`
+- `AgentHub`
 - `海康威视`
 - `内部研发资产分发平台`
+- `/brand/hikvision-logo.svg`
 
 Canonical Skill coordinate:
 
