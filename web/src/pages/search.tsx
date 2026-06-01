@@ -5,6 +5,7 @@ import { Filter, Loader2, Search as SearchIcon, Sparkles } from 'lucide-react'
 import type { SkillSummary } from '@/api/types'
 import { useAuth } from '@/features/auth/use-auth'
 import { SearchBar } from '@/features/search/search-bar'
+import { CapabilityCoveragePanel, type CoverageFilter } from '@/features/skill/capability-coverage-panel'
 import { SkillCard } from '@/features/skill/skill-card'
 import { ASSET_TYPE_OPTIONS, STAGE_OPTIONS, TOPOLOGY_OPTIONS, getCatalogOptionLabel } from '@/shared/lib/catalog'
 import { SkeletonList } from '@/shared/components/skeleton-loader'
@@ -22,6 +23,7 @@ import { APP_SHELL_PAGE_CLASS_NAME } from '@/app/page-shell-style'
 import { MARKETPLACE_INTENT_OPTIONS } from '@/shared/lib/asset-taxonomy'
 
 const PAGE_SIZE = 12
+const COVERAGE_SAMPLE_SIZE = 200
 const EMPTY_SELECT_VALUE = '__all__'
 
 function blurActiveElement() {
@@ -176,6 +178,15 @@ export function SearchPage() {
     size: PAGE_SIZE,
     starredOnly,
   }, !isAuthLoading && !isAuthFetching)
+  const {
+    data: coverageData,
+    isLoading: isLoadingCoverage,
+  } = useSearchSkills({
+    q: '',
+    sort: 'recommended',
+    page: 0,
+    size: COVERAGE_SAMPLE_SIZE,
+  }, !isAuthLoading && !isAuthFetching)
   const { data: labels } = useVisibleLabels()
   const {
     data: starredSkills,
@@ -321,6 +332,27 @@ export function SearchPage() {
     navigate({ to: '/search', search: buildSearchState({ page: 0, starredOnly: !starredOnly }) })
   }
 
+  const handleCoverageFilter = (filter: CoverageFilter) => {
+    if (filter.q !== undefined) {
+      setQueryInput(filter.q)
+    }
+    if (filter.domain !== undefined) {
+      setDomainInput(filter.domain)
+    }
+    if (filter.stack !== undefined) {
+      setStackInput(filter.stack)
+    }
+
+    navigate({
+      to: '/search',
+      search: buildSearchState({
+        ...filter,
+        page: 0,
+        starredOnly: false,
+      }),
+    })
+  }
+
   const handleSkillClick = (namespace: string, slug: string) => {
     navigate({ to: `/space/${namespace}/${encodeURIComponent(slug)}` })
   }
@@ -367,7 +399,7 @@ export function SearchPage() {
 
   return (
     <div className={APP_SHELL_PAGE_CLASS_NAME}>
-      <section className="enterprise-panel enterprise-surface-stripe p-8">
+      <section className="enterprise-panel enterprise-surface-stripe p-6 sm:p-8">
         <div className="max-w-4xl space-y-4">
           <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white">
             <SearchIcon className="h-3.5 w-3.5" />
@@ -400,6 +432,13 @@ export function SearchPage() {
           ))}
         </div>
       </section>
+
+      <CapabilityCoveragePanel
+        skills={coverageData?.items ?? []}
+        total={coverageData?.total}
+        isLoading={isLoadingCoverage}
+        onApplyFilter={handleCoverageFilter}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="space-y-6">

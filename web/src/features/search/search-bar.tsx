@@ -54,9 +54,9 @@ export function SearchBar({ defaultValue = '', value, placeholder, isSearching =
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex gap-3 rounded-[22px] border border-slate-200/90 bg-white/95 p-2 shadow-[0_16px_34px_-24px_rgba(15,23,42,0.45)]"
+      className="flex flex-col gap-3 rounded-[22px] border border-slate-200/90 bg-white/95 p-2 shadow-[0_16px_34px_-24px_rgba(15,23,42,0.45)] sm:flex-row"
     >
-      <div className="relative flex-1">
+      <div className="relative min-w-0 flex-1">
         <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
           type="text"
@@ -78,7 +78,7 @@ export function SearchBar({ defaultValue = '', value, placeholder, isSearching =
           </button>
         ) : null}
       </div>
-      <Button type="submit" size="lg" className="px-8 min-w-28" disabled={isSearching}>
+      <Button type="submit" size="lg" className="w-full px-8 sm:w-auto sm:min-w-28" disabled={isSearching}>
         {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : t('searchBar.button')}
       </Button>
     </form>
