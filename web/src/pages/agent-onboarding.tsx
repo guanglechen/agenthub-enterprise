@@ -6,7 +6,6 @@ import { CopyCommandBlock } from '@/shared/components/copy-command-block'
 import { APP_SHELL_PAGE_CLASS_NAME } from '@/app/page-shell-style'
 import {
   buildAgenthubCliInstallPackageCommand,
-  buildAgenthubCliLoginCommand,
   buildAgenthubCliWorkspaceInitCommand,
   getAppBaseUrl,
 } from '@/shared/lib/agenthub-cli'
@@ -14,8 +13,9 @@ import {
 const agentFlowSteps = [
   '读取 /llms.txt，确认这是企业内部 Skill 市场。',
   '读取 /.well-known/agenthub.json，获取 CLI、API、资产族和推荐入口。',
-  '由用户或 CI 注入 AGENTHUB_TOKEN，不在平台内自动申请 token。',
-  '执行 agent profile 和 install-plan，按项目上下文安装 Skill。',
+  'open-access 部署可直接读写；只有服务端返回 401/403 时才要求 token。',
+  '执行 agent profile 和 install-plan，按项目上下文安装到用户或工程目录。',
+  'CI 发布前自动解析 SKILL.md、git 或 CI actor 作为作者。',
   '使用 search / inspect / install / publish / catalog / relations 维护资产。',
 ] as const
 
@@ -34,7 +34,7 @@ export function AgentOnboardingPage() {
   const baseUrl = getAppBaseUrl()
   const humanBootstrap = [
     buildAgenthubCliInstallPackageCommand(baseUrl),
-    buildAgenthubCliLoginCommand(baseUrl),
+    buildAgenthubCliWorkspaceInitCommand(baseUrl),
     'agenthub-cli whoami --json',
     'agenthub-cli search --q spring-boot --assetType scaffold --json',
   ].join('\n')
@@ -102,8 +102,8 @@ export function AgentOnboardingPage() {
       <AgentDiscoveryPanel />
 
       <section className="grid gap-6 xl:grid-cols-2">
-        <CopyCommandBlock title="人类开发者快速接入" description="安装 CLI，使用用户提供的 token 连接平台，然后搜索或安装 Skill。" code={humanBootstrap} />
-        <CopyCommandBlock title="AI Agent 标准接入脚本" description="Agent 拿到平台地址后先读取机器入口，再生成 install-plan。" code={agentBootstrap} />
+        <CopyCommandBlock title="人类开发者快速接入" description="安装 CLI，open-access 环境可直接连接平台，然后搜索或安装 Skill。" code={humanBootstrap} />
+        <CopyCommandBlock title="AI Agent 标准接入脚本" description="Agent 拿到平台地址后先读取机器入口，再生成带安装位置的 install-plan。" code={agentBootstrap} />
       </section>
 
       <section className="enterprise-panel p-6">
@@ -112,7 +112,7 @@ export function AgentOnboardingPage() {
             <div className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">Agent contract</div>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Agent 连接后的执行约定</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              平台不替 Agent 自动申请 token。token 由用户、CI 或运行环境提供；Agent 负责按结构化命令查重、安装、发布和维护目录画像。
+              open-access 部署下 Agent 不需要先申请 token；严格认证部署返回 401/403 后再由用户或 CI 提供凭证。Agent 负责按结构化命令查重、安装、发布、补齐作者并维护目录画像。
             </p>
           </div>
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
@@ -153,12 +153,12 @@ export function AgentOnboardingPage() {
               <KeyRound className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-slate-950">Token 使用边界</h2>
-              <p className="text-sm text-slate-500">当前平台先关闭复杂认证体验，但 Agent 写操作仍需要用户显式提供 token。</p>
+              <h2 className="text-xl font-semibold text-slate-950">写入身份边界</h2>
+              <p className="text-sm text-slate-500">open-access 部署可无感发布；CLI 会把作者归因随包提交，严格认证部署才需要 token。</p>
             </div>
           </div>
           <div className="mt-5 space-y-3">
-            {['不要在 Skill 包中提交真实密码、私钥和完整 JDBC 凭证。', 'CI 可通过环境变量传入 AGENTHUB_TOKEN。', 'Claude Code 本地插件优先读取 AGENTHUB_BASE_URL 和 AGENTHUB_TOKEN。', '批量上传不走审核阻塞，重名由 Agent 或用户改名重传。'].map((item) => (
+            {['不要在 Skill 包中提交真实密码、私钥和完整 JDBC 凭证。', 'CI 发布会优先使用 SKILL.md author、CLI 参数、git config 或 CI actor 作为平台作者。', '通用质量类 Skill 默认安装到用户目录，项目脚手架和业务类 Skill 安装到工程目录。', '批量上传不走审核阻塞，重名由 Agent 或用户改名重传。'].map((item) => (
               <div key={item} className="flex gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                 <span>{item}</span>

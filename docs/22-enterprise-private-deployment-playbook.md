@@ -78,7 +78,7 @@ AgentHub Enterprise
 - `agenthub-cli`
 - 本地 Claude Code 插件 `plugins/agenthub-connector-plugin`
 - 工作区 `.claude/agenthub.json`
-- 工作区 `.claude/skills`
+- install-plan 返回的用户级或工程级 skills 目录
 
 ## 3. 内网部署前置清单
 
@@ -281,10 +281,11 @@ node plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs install-plan --wo
 node plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs apply-install-plan --workspace . --mode required
 ```
 
-安装后，技能会落到工作区：
+安装后，技能会按 install-plan 的 `targetDir` 落到用户级或工程级目录，例如：
 
 ```text
-.claude/skills/
+~/.agent/skills/
+./.agent/skills/
 ```
 
 ## 7. 本地插件先本地交付，再回传平台
@@ -338,7 +339,7 @@ node plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs apply-install-pla
 
 - 本地插件能读取 `agent/profile`
 - 本地插件能生成 install plan
-- 本地插件能把 skill 安装到 `.claude/skills`
+- 本地插件能按 install-plan 把 skill 安装到用户级或工程级目录
 
 ### 安全基线
 

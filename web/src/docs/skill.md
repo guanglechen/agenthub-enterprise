@@ -1,6 +1,6 @@
 ---
 name: agenthub-enterprise-registry
-description: Read this before using AgentHub Enterprise from a human workflow or an AI Agent. It explains what the platform is for, how to install the AgentHub CLI, how to obtain a token, how to initialize workspace config, and how to execute search, install, publish, and install-plan workflows.
+description: Read this before using AgentHub Enterprise from a human workflow or an AI Agent. It explains what the platform is for, how to install the AgentHub CLI, how to initialize workspace config without upfront tokens, and how to execute search, install, publish, and install-plan workflows.
 ---
 
 # AgentHub Enterprise Registry Guide
@@ -14,11 +14,11 @@ If you are an AI Agent and the user only gave you the platform address, do this 
 ```bash
 curl -fsS ${SKILLHUB_PUBLIC_BASE_URL}/llms.txt
 curl -fsS ${SKILLHUB_PUBLIC_BASE_URL}/.well-known/agenthub.json
-npm install -g ${SKILLHUB_PUBLIC_BASE_URL}/downloads/agenthub-cli-0.1.3.tgz
+npm install -g ${SKILLHUB_PUBLIC_BASE_URL}/downloads/agenthub-cli-0.1.4.tgz
 agenthub-cli agent profile --base-url ${SKILLHUB_PUBLIC_BASE_URL} --json
 ```
 
-Then ask the user for `AGENTHUB_TOKEN` only when you need to publish, update catalog metadata, maintain labels/relations, or access private team assets.
+Do not ask the user for `AGENTHUB_TOKEN` upfront. First run platform profile, search, install-plan, install, and publish workflows directly; only request a token if the connected deployment returns `401/403` or the user explicitly needs private team assets.
 
 Use it when you need to:
 
@@ -26,7 +26,7 @@ Use it when you need to:
 - connect a human CLI workflow to the platform
 - connect an Agent workspace to the platform
 - obtain the right install and publish commands
-- understand when a token is required
+- understand when an optional token is required
 
 ## What This Platform Is
 
@@ -69,7 +69,7 @@ The platform is optimized for `agenthub-cli` and for Agent-driven workflows such
 Install the CLI package served by the platform:
 
 ```bash
-npm install -g ${SKILLHUB_PUBLIC_BASE_URL}/downloads/agenthub-cli-0.1.3.tgz
+npm install -g ${SKILLHUB_PUBLIC_BASE_URL}/downloads/agenthub-cli-0.1.4.tgz
 ```
 
 `agenthub-cli` only requires Node.js 20+. Python is not required for install or unpack workflows.
@@ -79,19 +79,14 @@ retry with the loopback address and bypass npm proxy configuration:
 
 ```bash
 NO_PROXY='*' no_proxy='*' npm_config_proxy='' npm_config_https_proxy='' npm_config_noproxy='*' \
-  npm install -g http://127.0.0.1/downloads/agenthub-cli-0.1.3.tgz
+  npm install -g http://127.0.0.1/downloads/agenthub-cli-0.1.4.tgz
 ```
 
-Create a token from:
-
-```text
-${SKILLHUB_PUBLIC_BASE_URL}/dashboard/tokens
-```
-
-Login and verify access:
+Open-access deployments do not require a token for the default workflow.
+Initialize and verify access:
 
 ```bash
-agenthub-cli login --base-url ${SKILLHUB_PUBLIC_BASE_URL} --token sk_your_api_token_here
+agenthub-cli config init-workspace --workspace . --base-url ${SKILLHUB_PUBLIC_BASE_URL}
 agenthub-cli whoami --json
 ```
 
@@ -159,9 +154,13 @@ This tells you:
 - which bundles are recommended by default
 - which asset types and domains are expected
 
-### Step 2. Obtain a token when write or governed access is needed
+### Step 2. Start without a token and detect the auth boundary
 
-Token management page:
+Open-access deployments can search, install, and publish directly. Do not ask
+the user for a token before trying `agent profile`, `agent install-plan`, or
+`publish`.
+
+If a command returns `401/403`, then ask the user for an API token from:
 
 ```text
 ${SKILLHUB_PUBLIC_BASE_URL}/dashboard/tokens
@@ -169,8 +168,8 @@ ${SKILLHUB_PUBLIC_BASE_URL}/dashboard/tokens
 
 Guidance:
 
-- public read-only search and download may work without a token in open-access deployments
-- team-private assets, publishing, catalog maintenance, labels, and relations should use a token
+- public search, install/download, install-plan, and publish should be attempted without a token first
+- team-private assets or strict-auth deployments can still use a token after the platform proves one is needed
 
 ### Step 3. Initialize workspace configuration
 
@@ -180,7 +179,6 @@ Write `.claude/agenthub.json`:
 agenthub-cli config init-workspace \
   --workspace . \
   --base-url ${SKILLHUB_PUBLIC_BASE_URL} \
-  --token sk_your_api_token_here \
   --namespace team-alpha \
   --domain order \
   --assetType microservice \
@@ -204,9 +202,20 @@ agenthub-cli agent install-plan \
 
 ### Step 5. Install required skills and Harness Packages
 
+Each item in `requiredSkills` and `recommendedSkills` can include:
+
+- `installScope`: `user` for reusable platform capabilities, `workspace` for project-specific capabilities
+- `targetDir`: the directory where the Agent should install that skill
+
+Follow the `targetDir` returned by the platform. Do not install every skill into
+the current repository just because the Agent is running there. Shared quality,
+product, integration, release, or operation skills normally belong in
+`~/.agent/skills`; project scaffolds and business-context skills normally belong
+in `./.agent/skills`.
+
 ```bash
-agenthub-cli install --skill @global/java-microservice-baseline --base-url ${SKILLHUB_PUBLIC_BASE_URL}
-agenthub-cli install --skill @global/quality-gate-baseline --base-url ${SKILLHUB_PUBLIC_BASE_URL}
+agenthub-cli install --skill @global/java-microservice-baseline --target ./.agent/skills --base-url ${SKILLHUB_PUBLIC_BASE_URL}
+agenthub-cli install --skill @global/quality-gate-baseline --target ~/.agent/skills --base-url ${SKILLHUB_PUBLIC_BASE_URL}
 ```
 
 If the install plan indicates a Java/Spring Boot workspace, continue with Harness:
@@ -231,15 +240,15 @@ If your environment already has the Claude Code connector plugin installed from 
 
 ## Token Rules
 
-Use a token when any of the following is true:
+Do not use a token as the default path. Use a token only when any of the
+following is true:
 
-- you need to publish a skill
-- you need to update catalog metadata
-- you need to maintain labels or relations
+- the platform returns `401/403` for the operation
 - you need access to team-private or governed assets
-- you need reliable identity for automated pipelines
+- the user explicitly provided a token for a strict-auth deployment
+- an enterprise policy requires token-bound identity for automated pipelines
 
-Validate the token with:
+Validate an optional token with:
 
 ```bash
 agenthub-cli whoami --json

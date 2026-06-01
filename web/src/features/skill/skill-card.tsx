@@ -8,7 +8,7 @@ import { resolveAssetFamilyLabel } from '@/shared/lib/asset-taxonomy'
 import { getHeadlineVersion } from '@/shared/lib/skill-lifecycle'
 import { formatCompactCount } from '@/shared/lib/number-format'
 import { useCopyToClipboard } from '@/shared/lib/clipboard'
-import { Bookmark, Copy, GitBranch, TerminalSquare } from 'lucide-react'
+import { Bookmark, Copy, GitBranch, TerminalSquare, User } from 'lucide-react'
 
 interface SkillCardProps {
   skill: SkillSummary
@@ -38,6 +38,8 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
     (skill.catalogProfile?.stack?.length ?? 0) > 0 ? '共享技术栈' : null,
     (skill.relationCount ?? 0) > 0 ? '关联能力' : null,
     skill.downloadCount > 0 ? '高复用' : null,
+    skill.starCount > 0 ? '用户点赞' : null,
+    (skill.ratingAvg ?? 0) > 0 ? '评分较高' : null,
   ].filter(Boolean).slice(0, 3) as string[]
   const scoreLabel =
     typeof skill.recommendationScore === 'number' ? `${Math.round(skill.recommendationScore * 100)} / 100` : undefined
@@ -105,6 +107,13 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
           <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
             {skill.summary}
           </p>
+        )}
+
+        {skill.authorName && (
+          <div className="inline-flex max-w-full items-center gap-2 text-xs text-slate-500">
+            <User className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 truncate">作者 {skill.authorName}</span>
+          </div>
         )}
 
         {metaSummary.length > 0 && (

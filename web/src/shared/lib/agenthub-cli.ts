@@ -1,5 +1,5 @@
 export const AGENTHUB_CLI_PACKAGE_NAME = '@guanglechen/agenthub-cli'
-export const AGENTHUB_CLI_PACKAGE_VERSION = '0.1.3'
+export const AGENTHUB_CLI_PACKAGE_VERSION = '0.1.4'
 export const AGENTHUB_CLI_TARBALL_FILE_NAME = `agenthub-cli-${AGENTHUB_CLI_PACKAGE_VERSION}.tgz`
 
 export function getAppBaseUrl(): string {
@@ -33,9 +33,10 @@ export function buildAgenthubCliWhoamiCommand(): string {
 export function buildAgenthubCliWorkspaceInitCommand(
   baseUrl: string,
   workspace = '.',
-  token = 'sk_your_api_token_here',
+  token?: string,
 ): string {
-  return `agenthub-cli config init-workspace --workspace ${workspace} --base-url ${baseUrl} --token ${token}`
+  const tokenPart = token ? ` --token ${token}` : ''
+  return `agenthub-cli config init-workspace --workspace ${workspace} --base-url ${baseUrl}${tokenPart}`
 }
 
 export function buildAgenthubCliSkillInstallCommand(namespace: string, slug: string, baseUrl: string, version?: string): string {

@@ -5,7 +5,6 @@ import { Button } from '@/shared/ui/button'
 import { useCopyToClipboard } from '@/shared/lib/clipboard'
 import {
   buildAgenthubCliInstallPackageCommand,
-  buildAgenthubCliLoginCommand,
   buildAgenthubCliSkillInstallCommand,
   buildAgenthubCliWhoamiCommand,
   buildAgenthubCliWorkspaceInitCommand,
@@ -60,7 +59,7 @@ export function AgenthubOnboardingGuide({ compact = false }: AgenthubOnboardingG
 
   const humanCommands = useMemo(() => ({
     installPackage: buildAgenthubCliInstallPackageCommand(baseUrl),
-    login: buildAgenthubCliLoginCommand(baseUrl),
+    login: buildAgenthubCliWorkspaceInitCommand(baseUrl),
     verify: buildAgenthubCliWhoamiCommand(),
     installSkill: buildAgenthubCliSkillInstallCommand('global', 'java-microservice-baseline', baseUrl),
   }), [baseUrl])

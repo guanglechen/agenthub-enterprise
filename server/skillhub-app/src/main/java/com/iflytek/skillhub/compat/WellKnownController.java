@@ -32,8 +32,8 @@ public class WellKnownController {
                         Map.entry("claudeMarketplace", "/registry/claude-marketplace.json")
                 )),
                 Map.entry("cli", Map.of(
-                        "package", "/downloads/agenthub-cli-0.1.3.tgz",
-                        "install", "npm install -g <base-url>/downloads/agenthub-cli-0.1.3.tgz",
+                        "package", "/downloads/agenthub-cli-0.1.4.tgz",
+                        "install", "npm install -g <base-url>/downloads/agenthub-cli-0.1.4.tgz",
                         "profile", "agenthub-cli agent profile --base-url <base-url> --json",
                         "installPlan", "agenthub-cli agent install-plan --json"
                 )),
@@ -41,7 +41,8 @@ public class WellKnownController {
                         "Read /llms.txt and /registry/skill.md before using the platform.",
                         "Call /api/v1/agent/profile to understand capabilities and workflows.",
                         "Use agenthub-cli as the primary machine interface.",
-                        "Ask the user for AGENTHUB_TOKEN before publishing or maintaining catalog metadata.",
+                        "Use open-access direct publish when available; ask for AGENTHUB_TOKEN only after the deployment returns 401 or 403.",
+                        "Resolve the displayed Skill author from SKILL.md, CLI flags, git config, or CI actor metadata before publishing.",
                         "Do not replace the Skill market model with a separate top-level asset protocol."
                 )),
                 Map.entry("assetFamilies", List.of(

@@ -175,6 +175,9 @@ export interface SkillSummary {
   catalogProfile?: CatalogProfile
   relationCount?: number
   recommendationScore?: number
+  authorName?: string
+  authorEmail?: string
+  authorSource?: string
 }
 
 export type LabelItem = Omit<components['schemas']['SkillLabelDto'], 'slug' | 'type' | 'displayName'> & {
@@ -219,6 +222,9 @@ export interface SkillDetail {
   displayName: string
   ownerId?: string
   ownerDisplayName?: string
+  authorName?: string
+  authorEmail?: string
+  authorSource?: string
   summary?: string
   visibility: string
   status: string

@@ -264,7 +264,10 @@ public class SkillSearchAppService {
                 projection.resolutionMode().name(),
                 toCatalogResponse(catalogProfile),
                 catalogProfile != null ? catalogProfile.relations().size() : 0,
-                null
+                null,
+                skill.getAuthorName(),
+                skill.getAuthorEmail(),
+                skill.getAuthorSource()
         );
     }
 

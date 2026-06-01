@@ -24,8 +24,8 @@ What this platform is for:
 Human quick start:
 
 ```bash
-npm install -g ${SKILLHUB_PUBLIC_BASE_URL}/downloads/agenthub-cli-0.1.3.tgz
-agenthub-cli login --base-url ${SKILLHUB_PUBLIC_BASE_URL} --token sk_your_api_token_here
+npm install -g ${SKILLHUB_PUBLIC_BASE_URL}/downloads/agenthub-cli-0.1.4.tgz
+agenthub-cli config init-workspace --workspace . --base-url ${SKILLHUB_PUBLIC_BASE_URL}
 agenthub-cli search --q spring-boot --assetType scaffold --json
 ```
 

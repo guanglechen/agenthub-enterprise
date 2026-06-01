@@ -5,7 +5,7 @@
 1. 连接 AgentHub 平台
 2. 读取平台用途和默认工作流
 3. 基于当前仓库上下文生成 install plan
-4. 把平台推荐的 skill 安装到工作区 `.claude/skills`
+4. 按 install plan 返回的 `targetDir` 安装平台推荐的 skill
 
 ## 目录位置
 

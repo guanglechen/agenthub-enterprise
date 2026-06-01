@@ -32,6 +32,7 @@ public class AgentPlatformAppService {
                     "harness", true,
                     "installPlan", true,
                     "openAccessRead", true,
+                    "openAccessPublish", true,
                     "claudeCodeMarketplace", true
             ),
             List.of("product", "scaffold", "business", "microservice", "quality", "integration"),
@@ -68,8 +69,9 @@ public class AgentPlatformAppService {
                     "Call /api/v1/agent/profile first so the agent understands the platform purpose and default workflows.",
                     "Use /registry/claude-marketplace.json to discover Claude Code plugin distribution metadata.",
                     "Build an install plan from workspace context before searching assets ad hoc.",
-                    "Install required skills into .claude/skills, then use agenthub-cli harness commands when the workspace is Java/Spring Boot.",
-                    "Tokens are provided by the user, CI, or runtime environment. Agents should not auto-apply for tokens."
+                    "Install reusable quality and workflow skills into the user skill directory; install project-specific scaffolds and business skills into the workspace.",
+                    "Open-access deployments support direct publish without AGENTHUB_TOKEN. If a deployment returns 401 or 403, ask the runtime owner for a token instead of auto-applying for one.",
+                    "When publishing from CI, resolve the displayed author from SKILL.md, CLI flags, git config, or CI actor metadata before uploading."
             ),
             List.of(
                     "curl -fsS <base-url>/llms.txt",
@@ -81,8 +83,10 @@ public class AgentPlatformAppService {
                     "agenthub-cli harness verify --json"
             ),
             new AgentPlatformAuthResponse(
-                    "provided-by-user-or-ci",
-                    "Set AGENTHUB_TOKEN or pass --token. Agents should not auto-apply for tokens."
+                    "open-access-preferred",
+                    false,
+                    "direct-publish",
+                    "Do not ask for AGENTHUB_TOKEN in open-access deployments. Publish directly; only ask for a token after the server rejects the request with 401 or 403."
             )
     );
 
@@ -212,6 +216,8 @@ public class AgentPlatformAppService {
     }
 
     private AgentInstallPlanSkillResponse toInstallItem(SkillRecommendationResponse recommendation, boolean required) {
+        String installScope = determineInstallScope(recommendation);
+        String targetDir = "user".equals(installScope) ? "~/.agent/skills" : "./.agent/skills";
         return new AgentInstallPlanSkillResponse(
                 required,
                 recommendation.namespace(),
@@ -222,8 +228,26 @@ public class AgentPlatformAppService {
                 recommendation.score(),
                 recommendation.reasons(),
                 "/api/v1/skills/" + recommendation.namespace() + "/" + recommendation.slug() + "/download",
-                recommendation.namespace() + "--" + recommendation.slug()
+                recommendation.namespace().equals("global") ? recommendation.slug() : recommendation.namespace() + "--" + recommendation.slug(),
+                installScope,
+                targetDir
         );
+    }
+
+    private String determineInstallScope(SkillRecommendationResponse recommendation) {
+        if (recommendation.catalogProfile() == null) {
+            return "workspace";
+        }
+        String assetType = normalizeText(recommendation.catalogProfile().assetType());
+        String topology = normalizeText(recommendation.catalogProfile().topology());
+        String stage = normalizeText(recommendation.catalogProfile().stage());
+        if (assetType != null && Set.of("quality", "product", "integration").contains(assetType)) {
+            return "user";
+        }
+        if ("shared-lib".equals(topology) || (stage != null && Set.of("test", "release", "operate").contains(stage))) {
+            return "user";
+        }
+        return "workspace";
     }
 
     private List<String> buildNextActions(AgentWorkspaceContextResponse context,
@@ -236,7 +260,7 @@ public class AgentPlatformAppService {
             return actions;
         }
 
-        actions.add("Install required skills into .claude/skills before starting implementation.");
+        actions.add("Install each required skill into the targetDir returned by the install plan before starting implementation.");
         if (!recommendedSkills.isEmpty()) {
             actions.add("Review recommended skills after the baseline is installed; keep only the ones matching the current workflow.");
         }
@@ -259,7 +283,7 @@ public class AgentPlatformAppService {
 
         for (AgentInstallPlanSkillResponse skill : requiredSkills) {
             commands.add(new AgentInstallPlanCommandResponse(
-                    "agenthub-cli install --skill @" + skill.namespace() + "/" + skill.slug() + " --target .claude/skills --force --json",
+                    "agenthub-cli install --skill @" + skill.namespace() + "/" + skill.slug() + " --target " + skill.targetDir() + " --force --json",
                     "install-required-skill",
                     true
             ));

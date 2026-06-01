@@ -54,6 +54,9 @@ public class SkillPublishController extends BaseApiController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("visibility") String visibility,
             @RequestParam(value = "confirmWarnings", defaultValue = "false") boolean confirmWarnings,
+            @RequestParam(value = "authorName", required = false) String authorName,
+            @RequestParam(value = "authorEmail", required = false) String authorEmail,
+            @RequestParam(value = "authorSource", required = false) String authorSource,
             @AuthenticationPrincipal PlatformPrincipal principal) throws IOException {
 
         SkillVisibility skillVisibility = SkillVisibility.valueOf(visibility.toUpperCase());
@@ -75,14 +78,27 @@ public class SkillPublishController extends BaseApiController {
                     String.join("\n", extractionWarnings));
         }
 
-        SkillPublishService.PublishResult publishResult = skillPublishService.publishFromEntries(
-                namespace,
-                entries,
-                principal.userId(),
-                skillVisibility,
-                principal.platformRoles(),
-                confirmWarnings
-        );
+        SkillPublishService.PublishResult publishResult;
+        if (hasText(authorName) || hasText(authorEmail) || hasText(authorSource)) {
+            publishResult = skillPublishService.publishFromEntries(
+                    namespace,
+                    entries,
+                    principal.userId(),
+                    skillVisibility,
+                    principal.platformRoles(),
+                    confirmWarnings,
+                    new SkillPublishService.PublishAttribution(authorName, authorEmail, authorSource)
+            );
+        } else {
+            publishResult = skillPublishService.publishFromEntries(
+                    namespace,
+                    entries,
+                    principal.userId(),
+                    skillVisibility,
+                    principal.platformRoles(),
+                    confirmWarnings
+            );
+        }
 
         PublishResponse response = new PublishResponse(
                 publishResult.skillId(),
@@ -96,5 +112,9 @@ public class SkillPublishController extends BaseApiController {
         skillHubMetrics.incrementSkillPublish(namespace, publishResult.version().getStatus().name());
 
         return ok("response.success.published", response);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

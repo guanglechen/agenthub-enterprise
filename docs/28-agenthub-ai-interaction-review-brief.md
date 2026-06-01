@@ -49,7 +49,8 @@ AgentHub Enterprise 是企业内部 Skill / Agent 资产市场，不是公开开
 5. Agent 调用 `agenthub-cli agent profile --json`。
 6. Agent 根据当前工程上下文调用 `agenthub-cli agent install-plan --json`。
 7. Agent 安装推荐 Skill，必要时维护 catalog、labels、relations。
-8. 如需写操作，Agent 向用户请求 `AGENTHUB_TOKEN`，不自动申请 token。
+8. 如需写操作，Agent 先按 open-access 直接提交；只有服务端返回 401/403 时才向用户或 CI 请求 `AGENTHUB_TOKEN`。
+9. CI 发布前，Agent/CLI 必须解析作者：优先 SKILL.md，其次 CLI 参数、git config、CI actor。
 
 ## 4. 资产内容体系
 

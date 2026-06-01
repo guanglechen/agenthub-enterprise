@@ -314,7 +314,7 @@ metadata:
   displayName: Java 微服务 Harness
   version: 0.1.0
   ownerTeam: platform-engineering
-  minimumAgenthubCliVersion: 0.1.3
+  minimumAgenthubCliVersion: 0.1.4
 spec:
   target:
     language: java

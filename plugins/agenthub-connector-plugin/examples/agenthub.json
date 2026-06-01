@@ -1,8 +1,8 @@
 {
   "baseUrl": "http://localhost:8080",
-  "token": "sk_replace_me",
+  "token": "",
   "namespace": "team-space",
-  "installTargetDir": ".claude/skills",
+  "installTargetDir": "",
   "assetType": "microservice",
   "stage": "develop",
   "topology": "crud-api"

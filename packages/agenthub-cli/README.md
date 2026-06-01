@@ -17,26 +17,28 @@ It supports:
 From a packaged tarball served by an AgentHub deployment:
 
 ```bash
-npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.3.tgz
+npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.4.tgz
 ```
 
-## Login
+## Connect
 
 ```bash
-agenthub-cli login --base-url https://your-agenthub.example.com --token sk_your_api_token_here
+agenthub-cli config init-workspace --workspace . --base-url https://your-agenthub.example.com --namespace team-alpha --domain order
 agenthub-cli whoami --json
 ```
+
+Open-access deployments can publish directly without `AGENTHUB_TOKEN`. Strict-auth deployments can still use `agenthub-cli login --base-url <url> --token <token>`.
 
 ## Common commands
 
 ```bash
 agenthub-cli search --q spring-boot --assetType scaffold --json
 agenthub-cli inspect --skill @global/java-microservice-baseline --json
-agenthub-cli install --skill @global/java-microservice-baseline --base-url https://your-agenthub.example.com
-agenthub-cli publish --namespace team-alpha --file ./bundle.zip --catalog-file ./catalog.json --yes
+agenthub-cli install --skill @global/java-microservice-baseline --base-url https://your-agenthub.example.com --scope user
+agenthub-cli publish --namespace team-alpha --file ./bundle.zip --catalog-file ./catalog.json --author-name "Alex Chen" --yes
 agenthub-cli agent profile --json
 agenthub-cli agent install-plan --assetType microservice --domain order --stage develop --topology crud-api --stack java21,spring-boot3,maven --json
-agenthub-cli config init-workspace --workspace . --base-url https://your-agenthub.example.com --token sk_your_api_token_here --namespace team-alpha --domain order
+agenthub-cli config init-workspace --workspace . --base-url https://your-agenthub.example.com --namespace team-alpha --domain order
 ```
 
 ## Harness Commands

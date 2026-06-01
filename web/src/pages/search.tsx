@@ -79,6 +79,13 @@ function sortStarredSkills(skills: SkillSummary[], sort: string): SkillSummary[]
   if (sort === 'downloads') {
     return sorted.sort((left, right) => right.downloadCount - left.downloadCount)
   }
+  if (sort === 'rating') {
+    return sorted.sort((left, right) => {
+      const leftScore = (left.ratingAvg ?? 0) * Math.log1p(left.ratingCount ?? 0)
+      const rightScore = (right.ratingAvg ?? 0) * Math.log1p(right.ratingCount ?? 0)
+      return rightScore - leftScore
+    })
+  }
   if (sort === 'newest' || sort === 'relevance') {
     return sorted.sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime())
   }
@@ -543,11 +550,18 @@ export function SearchPage() {
                     {t('search.sort.newest')}
                   </Button>
                   <Button
+                    variant={sort === 'rating' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleSortChange('rating')}
+                  >
+                    {t('search.sort.rating')}
+                  </Button>
+                  <Button
                     variant={sort === 'recommended' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => handleSortChange('recommended')}
                   >
-                    推荐
+                    {t('search.sort.recommended')}
                   </Button>
                 </div>
               </div>

@@ -28,6 +28,15 @@ public class Skill {
     @Column(name = "owner_id", nullable = false)
     private String ownerId;
 
+    @Column(name = "author_name", length = 128)
+    private String authorName;
+
+    @Column(name = "author_email", length = 256)
+    private String authorEmail;
+
+    @Column(name = "author_source", length = 32)
+    private String authorSource;
+
     @Column(name = "source_skill_id")
     private Long sourceSkillId;
 
@@ -125,6 +134,18 @@ public class Skill {
         return ownerId;
     }
 
+    public String getAuthorName() {
+        return authorName;
+    }
+
+    public String getAuthorEmail() {
+        return authorEmail;
+    }
+
+    public String getAuthorSource() {
+        return authorSource;
+    }
+
     public Long getSourceSkillId() {
         return sourceSkillId;
     }
@@ -196,6 +217,18 @@ public class Skill {
 
     public void setSummary(String summary) {
         this.summary = summary;
+    }
+
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
+    }
+
+    public void setAuthorEmail(String authorEmail) {
+        this.authorEmail = authorEmail;
+    }
+
+    public void setAuthorSource(String authorSource) {
+        this.authorSource = authorSource;
     }
 
     public void setSourceSkillId(Long sourceSkillId) {

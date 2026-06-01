@@ -293,8 +293,18 @@ public class SkillCatalogAppService {
             reasons.add("related-by-graph");
         }
         if (candidate.getDownloadCount() != null && candidate.getDownloadCount() >= 10) {
-            score += Math.min(2D, candidate.getDownloadCount() / 50D);
+            score += Math.min(2.2D, Math.log1p(candidate.getDownloadCount()) * 0.6D);
             reasons.add("high-reuse");
+        }
+        if (candidate.getStarCount() != null && candidate.getStarCount() > 0) {
+            score += Math.min(1.8D, Math.log1p(candidate.getStarCount()) * 0.8D);
+            reasons.add("community-liked");
+        }
+        if (candidate.getRatingAvg() != null && candidate.getRatingCount() != null && candidate.getRatingCount() > 0) {
+            double bayesianRating = ((candidate.getRatingAvg().doubleValue() * candidate.getRatingCount()) + (3.5D * 5D))
+                    / (candidate.getRatingCount() + 5D);
+            score += Math.min(1.5D, bayesianRating / 5D * 1.5D);
+            reasons.add("high-rating");
         }
         if (candidate.getUpdatedAt() != null && candidate.getUpdatedAt().isAfter(Instant.now().minus(Duration.ofDays(90)))) {
             score += 0.4D;

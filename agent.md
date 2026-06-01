@@ -110,7 +110,7 @@
 
 当前平台同时提供可分发的 npm tarball：
 
-- `web/public/downloads/agenthub-cli-0.1.3.tgz`
+- `web/public/downloads/agenthub-cli-0.1.4.tgz`
 
 当前 CLI 已改为纯 Node 依赖，不再依赖 Python 解压，更适合 Claude Code 在 Windows + Node 环境下直接使用。
 
@@ -127,7 +127,7 @@
 1. 读取平台 profile
 2. 识别本地 workspace 上下文
 3. 请求 install plan
-4. 安装 required skills 到 `.claude/skills`
+4. 按 install-plan 返回的 `targetDir` 安装 required skills
 5. 包装 Harness browse / scan / init / verify / propose / contribute
 
 Claude Code marketplace 只作为兼容分发层，用于安装 `agenthub-connector-plugin`。AgentHub 内部仍以 `skill package` 作为权威资产模型。
@@ -300,9 +300,10 @@ Agent 应该优先使用：
 
 当前的设计原则是：
 
-- Token 由用户显式传给 Agent
-- CLI 不负责自动申请 token
-- Agent 拿到 token 后，自己完成查 skill、装 skill、传 skill、维护 metadata
+- open-access 部署下，Agent 不应先要求 token；直接调用 CLI/API，只有服务端返回 401/403 时才提示用户或 CI 提供 token
+- CLI 不负责自动申请 token，也不在平台内生成隐式凭证
+- Agent 发布 Skill 前要补齐作者归因：优先 SKILL.md，其次 CLI 参数、git config、CI actor
+- Agent 安装 Skill 时按 install-plan 的 `targetDir` 执行：通用质量/工作流能力可进入用户目录，项目脚手架/业务能力进入工程目录
 
 ### 6.3 本地插件
 
@@ -344,7 +345,7 @@ Agent 应该优先使用：
 - `agenthub-cli` 下载与安装
 - 本地 Claude Code 插件读取 profile
 - 本地 Claude Code 插件生成 install plan
-- 本地 Claude Code 插件安装 skill 到 `.claude/skills`
+- 本地 Claude Code 插件按 install-plan 安装 skill 到用户级或工程级目录
 - Claude Code marketplace 兼容 JSON 校验与 Web 分发入口
 
 也就是说，当前项目已经不是概念设计，而是具备了可运行的一期闭环。

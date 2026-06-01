@@ -182,10 +182,12 @@ public class PostgresFullTextQueryService implements SearchQueryService {
         if ("downloads".equals(query.sortBy())) {
             sql.append("ORDER BY s.download_count DESC, s.updated_at DESC, d.skill_id DESC ");
         } else if ("recommended".equals(query.sortBy())) {
-            sql.append("ORDER BY jsonb_array_length(").append(RELATIONS_SQL)
-                    .append(") DESC, s.download_count DESC, s.updated_at DESC, d.skill_id DESC ");
+            sql.append("ORDER BY (jsonb_array_length(").append(RELATIONS_SQL)
+                    .append(") * 4 + ln(CAST(s.download_count AS double precision) + 1.0) * 3 + ln(CAST(s.star_count AS double precision) + 1.0) * 4 + ")
+                    .append("(CASE WHEN s.rating_count > 0 THEN ((s.rating_avg * s.rating_count + 3.5 * 5) / (s.rating_count + 5)) ELSE 0 END)) DESC, ")
+                    .append("s.download_count DESC, s.star_count DESC, s.updated_at DESC, d.skill_id DESC ");
         } else if ("rating".equals(query.sortBy())) {
-            sql.append("ORDER BY s.rating_avg DESC, s.updated_at DESC, d.skill_id DESC ");
+            sql.append("ORDER BY (CASE WHEN s.rating_count > 0 THEN ((s.rating_avg * s.rating_count + 3.5 * 5) / (s.rating_count + 5)) ELSE 0 END) DESC, s.rating_count DESC, s.updated_at DESC, d.skill_id DESC ");
         } else if ("newest".equals(query.sortBy())) {
             sql.append("ORDER BY s.updated_at DESC, d.skill_id DESC ");
         } else if (useRelevanceOrdering) {

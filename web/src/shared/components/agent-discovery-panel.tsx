@@ -41,7 +41,7 @@ export function AgentDiscoveryPanel({ compact = false }: AgentDiscoveryPanelProp
   const agentBootstrap = [
     `curl -fsS ${baseUrl}/llms.txt`,
     `curl -fsS ${baseUrl}/.well-known/agenthub.json`,
-    `npm install -g ${baseUrl}/downloads/agenthub-cli-0.1.3.tgz`,
+    `npm install -g ${baseUrl}/downloads/agenthub-cli-0.1.4.tgz`,
     `agenthub-cli agent profile --base-url ${baseUrl} --json`,
   ].join('\n')
 
@@ -58,7 +58,7 @@ export function AgentDiscoveryPanel({ compact = false }: AgentDiscoveryPanelProp
               只给 Agent 一个平台地址，也能知道怎么接入
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Agent 先读文本入口和 well-known JSON，再安装 CLI、读取平台画像、生成 install-plan。写操作所需 token 由用户或 CI 提供。
+              Agent 先读文本入口和 well-known JSON，再安装 CLI、读取平台画像、生成 install-plan。open-access 先直接写入，401/403 后再请求 token。
             </p>
           </div>
         </div>

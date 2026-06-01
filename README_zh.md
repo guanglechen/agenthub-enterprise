@@ -28,7 +28,7 @@ AgentHub Enterprise 是一个面向企业研发场景的私有化开发资产中
 - 📖 **[用户指南](https://iflytek.github.io/skillhub/)** — 研发资产发布、搜索、CLI 使用与团队接入说明
 - 🛠️ **[开发者文档](https://zread.ai/iflytek/skillhub)** — 架构设计、API 参考、本地开发、部署运维等技术文档
 - 🏢 **[企业内网私有化部署 Playbook](docs/22-enterprise-private-deployment-playbook.md)** — 从内网仓库拉源码、构建内网镜像、部署到公司网络并接入 Agent 的落地指南
-- 🤖 **[本地 Claude Code 插件接入](docs/21-local-claude-plugin-connector.md)** — 平台画像读取、安装计划生成与本地 `.claude/skills` 安装闭环
+- 🤖 **[本地 Claude Code 插件接入](docs/21-local-claude-plugin-connector.md)** — 平台画像读取、安装计划生成与按 `targetDir` 安装闭环
 
 ## 核心特性
 
@@ -330,16 +330,16 @@ SkillHub 设计为与各种智能体平台和框架无缝集成。
 
 ```bash
 # 安装平台直接提供的 npm 包
-npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.3.tgz
+npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.4.tgz
 
-# 创建 Token 后登录
-agenthub-cli login --base-url https://your-agenthub.example.com --token sk_your_api_token_here
+# open-access 部署可直接初始化；严格认证部署再补充 --token
+agenthub-cli config init-workspace --workspace . --base-url https://your-agenthub.example.com --namespace team-alpha --domain order
 agenthub-cli whoami --json
 
 # 搜索、安装、发布
 agenthub-cli search --q spring-boot --assetType scaffold --json
-agenthub-cli install --skill @global/java-microservice-baseline --base-url https://your-agenthub.example.com
-agenthub-cli publish --namespace team-alpha --file ./bundle.zip --catalog-file ./catalog.json --yes
+agenthub-cli install --skill @global/java-microservice-baseline --base-url https://your-agenthub.example.com --scope user
+agenthub-cli publish --namespace team-alpha --file ./bundle.zip --catalog-file ./catalog.json --author-name "张三" --yes
 
 # Agent 入口
 agenthub-cli agent profile --json
@@ -395,7 +395,7 @@ npx clawhub publish ./my-skill --slug my-space--my-skill --version 1.0.0
 其中 `my-space--my-skill` 是兼容层使用的 canonical slug，SkillHub 会将其解析为
 namespace `my-space` 和 skill slug `my-skill`。
 
-> 💡 **提示**：上述命令不仅适用于 OpenClaw，通过指定安装目录（`--dir`），也可适用于其他的 CLI Coding Agent 或 Agent 助手。例如：`npx clawhub --dir ~/.claude/skills install my-skill`
+> 💡 **提示**：上述命令不仅适用于 OpenClaw，通过指定安装目录（`--dir`），也可适用于其他的 CLI Coding Agent 或 Agent 助手。例如：`npx clawhub --dir ~/.agent/skills install my-skill`
 
 📖 **[完整 OpenClaw 集成指南 →](./docs/openclaw-integration.md)**
 

@@ -23,8 +23,60 @@ public record SkillSummaryResponse(
         String resolutionMode,
         SkillCatalogProfileResponse catalogProfile,
         Integer relationCount,
-        Double recommendationScore
+        Double recommendationScore,
+        String authorName,
+        String authorEmail,
+        String authorSource
 ) {
+    public SkillSummaryResponse(
+            Long id,
+            String slug,
+            String displayName,
+            String summary,
+            String visibility,
+            String status,
+            Long downloadCount,
+            Integer starCount,
+            BigDecimal ratingAvg,
+            Integer ratingCount,
+            String namespace,
+            Instant updatedAt,
+            boolean canSubmitPromotion,
+            SkillLifecycleVersionResponse headlineVersion,
+            SkillLifecycleVersionResponse publishedVersion,
+            SkillLifecycleVersionResponse ownerPreviewVersion,
+            String resolutionMode,
+            SkillCatalogProfileResponse catalogProfile,
+            Integer relationCount,
+            Double recommendationScore
+    ) {
+        this(
+                id,
+                slug,
+                displayName,
+                summary,
+                visibility,
+                status,
+                downloadCount,
+                starCount,
+                ratingAvg,
+                ratingCount,
+                namespace,
+                updatedAt,
+                canSubmitPromotion,
+                headlineVersion,
+                publishedVersion,
+                ownerPreviewVersion,
+                resolutionMode,
+                catalogProfile,
+                relationCount,
+                recommendationScore,
+                null,
+                null,
+                null
+        );
+    }
+
     public SkillSummaryResponse(
             Long id,
             String slug,
@@ -62,6 +114,9 @@ public record SkillSummaryResponse(
                 publishedVersion,
                 ownerPreviewVersion,
                 resolutionMode,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null

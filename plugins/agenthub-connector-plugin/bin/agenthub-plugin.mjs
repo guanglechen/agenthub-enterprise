@@ -49,6 +49,22 @@ function resolveWorkspace(options) {
   return path.resolve(options.workspace || process.cwd())
 }
 
+function expandHomePath(value) {
+  const text = String(value || '')
+  if (text === '~') {
+    return os.homedir()
+  }
+  if (text.startsWith('~/')) {
+    return path.join(os.homedir(), text.slice(2))
+  }
+  return text
+}
+
+function resolveTargetDir(value, workspace) {
+  const expanded = expandHomePath(value)
+  return path.isAbsolute(expanded) ? expanded : path.resolve(workspace, expanded)
+}
+
 function loadConfig(workspace, options) {
   const explicitConfig = options.config ? path.resolve(options.config) : null
   const defaultConfig = path.join(workspace, '.claude', 'agenthub.json')
@@ -71,7 +87,7 @@ function resolveCliBinary(config) {
   if (baseUrl) {
     return {
       command: 'npx',
-      prefixArgs: ['-y', '--package', `${String(baseUrl).replace(/\/$/, '')}/downloads/agenthub-cli-0.1.3.tgz`, 'agenthub-cli'],
+      prefixArgs: ['-y', '--package', `${String(baseUrl).replace(/\/$/, '')}/downloads/agenthub-cli-0.1.4.tgz`, 'agenthub-cli'],
     }
   }
   return { command: 'npx', prefixArgs: ['-y', '--package', '@guanglechen/agenthub-cli', 'agenthub-cli'] }
@@ -227,8 +243,8 @@ function printHelp() {
   profile [--json]
   detect-context [--workspace <dir>] [--json]
   install-plan [--context-file context.json | --workspace <dir>] [--json]
-  install-skill --skill @namespace/slug [--target .claude/skills]
-  apply-install-plan [--context-file context.json | --workspace <dir>] [--mode required|all] [--target .claude/skills] [--json]
+  install-skill --skill @namespace/slug [--target <dir>]
+  apply-install-plan [--context-file context.json | --workspace <dir>] [--mode required|all] [--target <dir>] [--json]
   harness-browse [--workspace <dir>] [--stack java21,spring-boot3] [--json]
   harness-scan [--workspace <dir>] [--json]
   harness-verify [--workspace <dir>] [--json]
@@ -276,7 +292,7 @@ async function main() {
       if (!options.skill) {
         fail('install-skill requires --skill @namespace/slug')
       }
-      const targetDir = path.resolve(options.target || config.installTargetDir || path.join(workspace, '.claude', 'skills'))
+      const targetDir = resolveTargetDir(options.target || config.installTargetDir || path.join(workspace, '.claude', 'skills'), workspace)
       const result = installSkill(options.skill, targetDir, config)
       printJson(result)
       return
@@ -288,17 +304,17 @@ async function main() {
       const temp = writeTempJson(context)
       try {
         const plan = JSON.parse(runCli(['agent', 'install-plan', '--context-file', temp.filePath, '--json'], config))
-        const targetDir = path.resolve(options.target || config.installTargetDir || path.join(workspace, '.claude', 'skills'))
         const mode = options.mode || 'required'
         const selected = mode === 'all'
           ? [...(plan.requiredSkills || []), ...(plan.recommendedSkills || [])]
           : [...(plan.requiredSkills || [])]
         const installed = selected.map((item) =>
-          installSkill(`@${item.namespace}/${item.slug}`, targetDir, config),
+          installSkill(`@${item.namespace}/${item.slug}`, resolveTargetDir(options.target || config.installTargetDir || item.targetDir || path.join(workspace, '.claude', 'skills'), workspace), config),
         )
+        const targetDirs = Array.from(new Set(installed.map((item) => item.installDir && path.dirname(item.installDir)).filter(Boolean)))
         printJson({
           mode,
-          targetDir,
+          targetDirs,
           installed,
           nextActions: plan.nextActions || [],
         })

@@ -24,12 +24,12 @@
 
 同时，发布站点静态资源目录会携带一个可直接安装的 npm tarball：
 
-- `/downloads/agenthub-cli-0.1.3.tgz`
+- `/downloads/agenthub-cli-0.1.4.tgz`
 
 推荐安装命令：
 
 ```bash
-npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.3.tgz
+npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.4.tgz
 ```
 
 这样做的目的，是先解决“企业内网环境不方便走公共 npm registry / GHCR”的现实问题，让平台本身就能分发 CLI 包。
@@ -50,19 +50,21 @@ npm install -g https://your-agenthub.example.com/downloads/agenthub-cli-0.1.3.tg
 - 创建 Agent 自动化使用的 Token
 - 管理已有 Token 的过期时间和删除
 
-### 3.2 登录与校验
+### 3.2 初始化与校验
 
 ```bash
-agenthub-cli login --base-url https://your-agenthub.example.com --token sk_your_api_token_here
+agenthub-cli config init-workspace --workspace . --base-url https://your-agenthub.example.com --namespace team-alpha --domain order
 agenthub-cli whoami --json
 ```
+
+open-access 部署可直接执行写操作；严格认证部署返回 401/403 后，再通过 `agenthub-cli login --base-url <url> --token <token>` 写入凭证。
 
 ### 3.3 搜索、安装、发布
 
 ```bash
 agenthub-cli search --q spring-boot --assetType scaffold --json
-agenthub-cli install --skill @global/java-microservice-baseline --base-url https://your-agenthub.example.com
-agenthub-cli publish --namespace team-alpha --file ./bundle.zip --catalog-file ./catalog.json --yes
+agenthub-cli install --skill @global/java-microservice-baseline --base-url https://your-agenthub.example.com --scope user
+agenthub-cli publish --namespace team-alpha --file ./bundle.zip --catalog-file ./catalog.json --author-name "张三" --yes
 ```
 
 ## 4. Agent 的接入流程
@@ -77,7 +79,8 @@ Agent 首先读取：
 
 - 平台是什么
 - 推荐优先使用哪个 CLI
-- Token 从哪里拿
+- open-access 写操作与严格认证部署的 token 边界
+- 作者归因如何从 SKILL.md、CLI 参数、git 或 CI actor 获取
 - workspace 怎么初始化
 - install-plan 怎么调用
 
@@ -87,7 +90,6 @@ Agent 首先读取：
 agenthub-cli config init-workspace \
   --workspace . \
   --base-url https://your-agenthub.example.com \
-  --token sk_your_api_token_here \
   --namespace team-alpha \
   --domain order \
   --assetType microservice \
@@ -115,9 +117,16 @@ agenthub-cli agent install-plan \
 
 ### 4.4 安装 skill
 
+`install-plan` 的每个 skill 会返回 `installScope` 和 `targetDir`：
+
+- `installScope=user`：通用质量、产品、集成、发布、运维类能力，默认安装到 `~/.agent/skills`
+- `installScope=workspace`：项目脚手架、业务上下文类能力，默认安装到 `./.agent/skills`
+
+Agent 必须优先按平台返回的 `targetDir` 安装，不要因为当前在工程目录执行就把所有通用能力都塞进工程。
+
 ```bash
-agenthub-cli install --skill @global/java-microservice-baseline --base-url https://your-agenthub.example.com
-agenthub-cli install --skill @global/quality-gate-baseline --base-url https://your-agenthub.example.com
+agenthub-cli install --skill @global/java-microservice-baseline --target ./.agent/skills --base-url https://your-agenthub.example.com
+agenthub-cli install --skill @global/quality-gate-baseline --target ~/.agent/skills --base-url https://your-agenthub.example.com
 ```
 
 ### 4.5 使用 Harness Package
@@ -226,7 +235,7 @@ node plugins/agenthub-connector-plugin/bin/agenthub-plugin.mjs harness-init --sk
 
 当前可用方式是：
 
-1. 通过站点静态资源下载 `agenthub-cli-0.1.3.tgz`
+1. 通过站点静态资源下载 `agenthub-cli-0.1.4.tgz`
 2. `npm install -g <tarball-url>`
 
 后续如果要正式发布 npm，可以直接基于 `packages/agenthub-cli` 执行发布流程。

@@ -71,6 +71,16 @@ public class SkillPublishService {
             SkillVersion version
     ) {}
 
+    public record PublishAttribution(
+            String authorName,
+            String authorEmail,
+            String authorSource
+    ) {
+        public static PublishAttribution empty() {
+            return new PublishAttribution(null, null, null);
+        }
+    }
+
     private final NamespaceRepository namespaceRepository;
     private final NamespaceMemberRepository namespaceMemberRepository;
     private final SkillRepository skillRepository;
@@ -147,7 +157,19 @@ public class SkillPublishService {
             SkillVisibility visibility,
             java.util.Set<String> platformRoles,
             boolean confirmWarnings) {
-        return publishFromEntriesInternal(namespaceSlug, entries, publisherId, visibility, platformRoles, confirmWarnings, false, false);
+        return publishFromEntries(namespaceSlug, entries, publisherId, visibility, platformRoles, confirmWarnings, PublishAttribution.empty());
+    }
+
+    @Transactional
+    public PublishResult publishFromEntries(
+            String namespaceSlug,
+            List<PackageEntry> entries,
+            String publisherId,
+            SkillVisibility visibility,
+            java.util.Set<String> platformRoles,
+            boolean confirmWarnings,
+            PublishAttribution attribution) {
+        return publishFromEntriesInternal(namespaceSlug, entries, publisherId, visibility, platformRoles, confirmWarnings, false, false, attribution);
     }
 
     /**
@@ -188,7 +210,8 @@ public class SkillPublishService {
                 Set.of(),
                 confirmWarnings,  // confirmWarnings: honour caller's choice for rerelease
                 false,  // forceAutoPublish=false: respect visibility rules
-                true
+                true,
+                PublishAttribution.empty()
         );
     }
 
@@ -200,7 +223,8 @@ public class SkillPublishService {
             Set<String> platformRoles,
             boolean confirmWarnings,
             boolean forceAutoPublish,
-            boolean bypassMembershipCheck) {
+            boolean bypassMembershipCheck,
+            PublishAttribution attribution) {
 
         // 1. Find namespace by slug
         Namespace namespace = namespaceRepository.findBySlug(namespaceSlug)
@@ -282,6 +306,7 @@ public class SkillPublishService {
                     newSkill.setCreatedBy(publisherId);
                     return skillRepository.save(newSkill);
                 });
+        applyAttribution(skill, metadata, attribution);
 
         if (skill.getStatus() == SkillStatus.ARCHIVED) {
             throw new DomainBadRequestException("error.skill.publish.archived", skillSlug);
@@ -504,6 +529,58 @@ public class SkillPublishService {
         return warnings.stream()
                 .map(warning -> "- " + warning)
                 .reduce("", (left, right) -> left.isEmpty() ? right : left + "\n" + right);
+    }
+
+    private void applyAttribution(Skill skill, SkillMetadata metadata, PublishAttribution attribution) {
+        PublishAttribution resolved = resolveAttribution(metadata, attribution);
+        if (resolved.authorName() == null && resolved.authorEmail() == null) {
+            return;
+        }
+        skill.setAuthorName(limit(resolved.authorName(), 128));
+        skill.setAuthorEmail(limit(resolved.authorEmail(), 256));
+        skill.setAuthorSource(limit(resolved.authorSource() != null ? resolved.authorSource() : "skill-md", 32));
+        skillRepository.save(skill);
+    }
+
+    private PublishAttribution resolveAttribution(SkillMetadata metadata, PublishAttribution attribution) {
+        String requestedName = normalize(attribution != null ? attribution.authorName() : null);
+        String requestedEmail = normalize(attribution != null ? attribution.authorEmail() : null);
+        String requestedSource = normalize(attribution != null ? attribution.authorSource() : null);
+        if (requestedName != null || requestedEmail != null) {
+            return new PublishAttribution(requestedName, requestedEmail, requestedSource != null ? requestedSource : "cli");
+        }
+
+        Map<String, Object> frontmatter = metadata.frontmatter();
+        String frontmatterName = normalize(readFirst(frontmatter, "author", "authorName", "x-agenthub-author", "maintainer"));
+        String frontmatterEmail = normalize(readFirst(frontmatter, "authorEmail", "author_email", "x-agenthub-author-email", "maintainerEmail"));
+        if (frontmatterName != null || frontmatterEmail != null) {
+            return new PublishAttribution(frontmatterName, frontmatterEmail, "skill-md");
+        }
+        return PublishAttribution.empty();
+    }
+
+    private String readFirst(Map<String, Object> values, String... keys) {
+        if (values == null) {
+            return null;
+        }
+        for (String key : keys) {
+            Object value = values.get(key);
+            if (value != null) {
+                return value.toString();
+            }
+        }
+        return null;
+    }
+
+    private String normalize(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String limit(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 
     private void assertNamespaceWritable(Namespace namespace) {

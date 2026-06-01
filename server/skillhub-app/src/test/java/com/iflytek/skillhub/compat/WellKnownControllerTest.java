@@ -43,7 +43,7 @@ class WellKnownControllerTest {
                 .andExpect(jsonPath("$.endpoints.llms").value("/llms.txt"))
                 .andExpect(jsonPath("$.endpoints.registryDoc").value("/registry/skill.md"))
                 .andExpect(jsonPath("$.endpoints.agentProfile").value("/api/v1/agent/profile"))
-                .andExpect(jsonPath("$.cli.package").value("/downloads/agenthub-cli-0.1.3.tgz"))
+                .andExpect(jsonPath("$.cli.package").value("/downloads/agenthub-cli-0.1.4.tgz"))
                 .andExpect(jsonPath("$.agentInstructions[0]").value("Read /llms.txt and /registry/skill.md before using the platform."))
                 .andExpect(jsonPath("$.assetFamilies[0]").value("claude-agent-plugin"));
     }

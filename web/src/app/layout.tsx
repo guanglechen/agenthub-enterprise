@@ -266,7 +266,7 @@ export function Layout() {
                     Agent 接入提示
                   </div>
                   <p className="mt-3 text-sm leading-6 text-white/65">
-                    先通过本地插件或 CLI 连接平台，再根据 install-plan 拉取基础 skill 到 `.claude/skills`。
+                    先通过本地插件或 CLI 连接平台，再按 install-plan 的 targetDir 拉取基础 skill。
                   </p>
                   <Link
                     to="/agent"

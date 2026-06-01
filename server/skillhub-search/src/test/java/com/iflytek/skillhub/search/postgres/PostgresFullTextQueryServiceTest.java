@@ -334,6 +334,38 @@ class PostgresFullTextQueryServiceTest {
     }
 
     @Test
+    void recommendedSortShouldUsePortableCastsInsteadOfPostgresDoubleColonSyntax() {
+        EntityManager entityManager = mock(EntityManager.class);
+        Query nativeQuery = mock(Query.class);
+        Query countQuery = mock(Query.class);
+        when(entityManager.createNativeQuery(anyString()))
+                .thenReturn(nativeQuery)
+                .thenReturn(countQuery);
+        when(nativeQuery.setParameter(anyString(), org.mockito.ArgumentMatchers.any())).thenReturn(nativeQuery);
+        when(countQuery.setParameter(anyString(), org.mockito.ArgumentMatchers.any())).thenReturn(countQuery);
+        when(nativeQuery.getResultList()).thenReturn(List.of());
+        when(countQuery.getSingleResult()).thenReturn(0L);
+
+        PostgresFullTextQueryService service = new PostgresFullTextQueryService(entityManager);
+
+        service.search(new SearchQuery(
+                null,
+                null,
+                new SearchVisibilityScope(null, Set.of(), Set.of()),
+                "recommended",
+                0,
+                12
+        ));
+
+        var sqlCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(entityManager, org.mockito.Mockito.times(2)).createNativeQuery(sqlCaptor.capture());
+        assertThat(sqlCaptor.getAllValues().getFirst())
+                .contains("ln(CAST(s.download_count AS double precision) + 1.0)")
+                .contains("ln(CAST(s.star_count AS double precision) + 1.0)")
+                .doesNotContain("::double precision");
+    }
+
+    @Test
     void emptyKeywordRelevanceShouldUseStableNewestOrdering() {
         EntityManager entityManager = mock(EntityManager.class);
         Query nativeQuery = mock(Query.class);

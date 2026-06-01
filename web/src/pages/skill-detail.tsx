@@ -792,13 +792,13 @@ export function SkillDetailPage() {
             )}
           </div>
           <h1 className="text-balance text-4xl font-bold font-heading text-foreground">{skill.displayName}</h1>
-          {skill.ownerDisplayName && (
+          {(skill.authorName || skill.ownerDisplayName) && (
             <div className="flex min-w-0">
               <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-border/60 bg-background/85 px-3 py-1.5 text-sm text-muted-foreground shadow-sm backdrop-blur-sm">
                 <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">
                   <User className="h-3.5 w-3.5" aria-hidden="true" />
                 </span>
-                <span className="min-w-0 truncate">{t('skillDetail.authorLabel', { name: skill.ownerDisplayName })}</span>
+                <span className="min-w-0 truncate">{t('skillDetail.authorLabel', { name: skill.authorName || skill.ownerDisplayName })}</span>
               </div>
             </div>
           )}

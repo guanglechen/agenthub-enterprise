@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
+import { execFileSync } from 'node:child_process'
 import extractZip from 'extract-zip'
 import YAML from 'yaml'
 
@@ -55,6 +56,35 @@ function buildInstallTarget(namespace, slug) {
   return namespace === 'global' ? slug : `${namespace}--${slug}`
 }
 
+function expandHomePath(value) {
+  const text = String(value || '')
+  if (text === '~') {
+    return os.homedir()
+  }
+  if (text.startsWith('~/')) {
+    return path.join(os.homedir(), text.slice(2))
+  }
+  return text
+}
+
+function resolvePathFromCwd(value) {
+  const expanded = expandHomePath(value)
+  return path.isAbsolute(expanded) ? expanded : path.resolve(process.cwd(), expanded)
+}
+
+function resolveInstallTargetRoot(options = {}) {
+  if (options.target) {
+    return resolvePathFromCwd(options.target)
+  }
+  if (options.scope === 'user') {
+    return path.join(os.homedir(), '.agent', 'skills')
+  }
+  if (options.scope === 'workspace') {
+    return path.resolve(process.cwd(), '.agent', 'skills')
+  }
+  return path.resolve(process.cwd(), path.join('.claude', 'skills'))
+}
+
 function resolveConfigPath(options = {}) {
   if (options.config) {
     return path.resolve(String(options.config))
@@ -78,6 +108,96 @@ function readJsonIfExists(filePath) {
 function writeJsonFile(filePath, data) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true })
   fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf8')
+}
+
+function normalizeText(value) {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+  const text = String(value).trim()
+  return text ? text : undefined
+}
+
+function readGitConfig(key) {
+  try {
+    return normalizeText(execFileSync('git', ['config', '--get', key], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }))
+  } catch {
+    return undefined
+  }
+}
+
+function parseSkillMdFrontmatter(content) {
+  const text = String(content || '').trim()
+  if (!text.startsWith('---')) {
+    return {}
+  }
+  const firstLineEnd = text.indexOf('\n', 3)
+  if (firstLineEnd < 0) {
+    return {}
+  }
+  const end = text.indexOf('---', firstLineEnd + 1)
+  if (end < 0) {
+    return {}
+  }
+  try {
+    const parsed = YAML.parse(text.slice(firstLineEnd + 1, end).trim())
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+async function readPackageAttribution(filePath) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agenthub-cli-author-'))
+  try {
+    await extractZip(filePath, { dir: tempDir })
+    const skillMdPath = path.join(tempDir, 'SKILL.md')
+    if (!fs.existsSync(skillMdPath)) {
+      return {}
+    }
+    const frontmatter = parseSkillMdFrontmatter(fs.readFileSync(skillMdPath, 'utf8'))
+    return {
+      authorName: normalizeText(frontmatter.author || frontmatter.authorName || frontmatter['x-agenthub-author'] || frontmatter.maintainer),
+      authorEmail: normalizeText(frontmatter.authorEmail || frontmatter.author_email || frontmatter['x-agenthub-author-email'] || frontmatter.maintainerEmail),
+      authorSource: 'skill-md',
+    }
+  } catch {
+    return {}
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true })
+  }
+}
+
+async function resolvePublishAttribution(options, filePath) {
+  const packageAttribution = await readPackageAttribution(filePath)
+  const gitAuthorName = readGitConfig('user.name')
+  const gitAuthorEmail = readGitConfig('user.email')
+  const ciAuthorName = normalizeText(process.env.GITHUB_ACTOR || process.env.GITLAB_USER_NAME || process.env.BUILD_USER)
+  const authorName = normalizeText(options.author || options['author-name'])
+    || normalizeText(process.env.AGENTHUB_AUTHOR_NAME)
+    || normalizeText(packageAttribution.authorName)
+    || gitAuthorName
+    || ciAuthorName
+  const authorEmail = normalizeText(options['author-email'])
+    || normalizeText(process.env.AGENTHUB_AUTHOR_EMAIL)
+    || normalizeText(packageAttribution.authorEmail)
+    || gitAuthorEmail
+  const authorSource = normalizeText(options['author-source'])
+    || (options.author || options['author-name'] || options['author-email'] ? 'cli' : undefined)
+    || (process.env.AGENTHUB_AUTHOR_NAME || process.env.AGENTHUB_AUTHOR_EMAIL ? 'env' : undefined)
+    || (packageAttribution.authorName || packageAttribution.authorEmail ? packageAttribution.authorSource : undefined)
+    || (gitAuthorName || gitAuthorEmail ? 'git' : undefined)
+    || (ciAuthorName ? 'ci' : undefined)
+
+  if ((process.env.CI || options['require-author']) && !authorName && options['allow-missing-author'] !== true && options['allow-missing-author'] !== 'true') {
+    fail('publish requires an author in CI. Set SKILL.md author, pass --author-name, set AGENTHUB_AUTHOR_NAME, or configure git user.name.')
+  }
+
+  return { authorName, authorEmail, authorSource }
 }
 
 function resolveRuntime(options = {}) {
@@ -933,7 +1053,7 @@ async function commandInstall(options) {
 
   const { namespace, slug } = splitSkillCoordinate(options.skill)
   const installTarget = buildInstallTarget(namespace, slug)
-  const targetRoot = path.resolve(process.cwd(), options.target || path.join('.claude', 'skills'))
+  const targetRoot = resolveInstallTargetRoot(options)
   const installDir = path.join(targetRoot, installTarget)
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agenthub-cli-install-'))
 
@@ -972,16 +1092,26 @@ async function commandInstall(options) {
 
 async function commandPublish(options) {
   const namespace = options.namespace
-  const filePath = options.file
+  const filePath = options.file ? path.resolve(String(options.file)) : undefined
   const visibility = options.visibility || 'PUBLIC'
   if (!namespace || !filePath) {
     fail('publish requires --namespace and --file')
   }
+  const attribution = await resolvePublishAttribution(options, filePath)
   const form = new FormData()
   const fileBuffer = fs.readFileSync(filePath)
   form.append('file', new Blob([fileBuffer]), path.basename(filePath))
   form.append('visibility', visibility)
   form.append('confirmWarnings', String(options.yes === true || options.yes === 'true'))
+  if (attribution.authorName) {
+    form.append('authorName', attribution.authorName)
+  }
+  if (attribution.authorEmail) {
+    form.append('authorEmail', attribution.authorEmail)
+  }
+  if (attribution.authorSource) {
+    form.append('authorSource', attribution.authorSource)
+  }
   const data = await request('POST', `/api/v1/skills/${String(namespace).replace(/^@/, '')}/publish`, options, {
     body: form,
     headers: {},
@@ -995,8 +1125,9 @@ async function commandPublish(options) {
     })
   }
 
-  printJson(data)
-  return data
+  const result = { ...data, authorName: attribution.authorName, authorEmail: attribution.authorEmail, authorSource: attribution.authorSource }
+  printJson(result)
+  return result
 }
 
 async function commandCatalogGet(options) {
@@ -1329,7 +1460,7 @@ function commandHarnessContribute(options) {
       displayName: options.name,
       version: options.version || '0.1.0',
       ownerTeam: catalog.ownerTeam,
-      minimumAgenthubCliVersion: '0.1.3',
+      minimumAgenthubCliVersion: '0.1.4',
     },
     spec: {
       target: {
@@ -1444,8 +1575,8 @@ function printHelp() {
   whoami --json
   search --q <text> [--assetType <type>] [--json]
   inspect --skill @namespace/slug --json
-  install --skill @namespace/slug [--version 1.0.0] [--target .claude/skills] [--force] [--base-url <url>]
-  publish --namespace <ns> --file <bundle.zip> [--visibility PUBLIC] [--catalog-file catalog.json] [--yes]
+  install --skill @namespace/slug [--version 1.0.0] [--scope user|workspace] [--target <dir>] [--force] [--base-url <url>]
+  publish --namespace <ns> --file <bundle.zip> [--author-name <name>] [--author-email <email>] [--visibility PUBLIC] [--catalog-file catalog.json] [--yes]
   download --skill @namespace/slug [--version 1.0.0] [--out skill.zip]
   catalog get --skill @namespace/slug --json
   catalog set --skill @namespace/slug --file catalog.json

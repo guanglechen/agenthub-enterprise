@@ -253,9 +253,9 @@ export function PublishPage() {
   const automationNamespace = namespaceSlug || 'team-alpha'
   const automationCommand = [
     buildAgenthubCliInstallPackageCommand(baseUrl),
-    `agenthub-cli login --base-url ${baseUrl} --token sk_your_api_token_here`,
+    `agenthub-cli config init-workspace --workspace . --base-url ${baseUrl}`,
     'agenthub-cli search --q "order service scaffold" --json',
-    `agenthub-cli publish --namespace ${automationNamespace} --file ./skill.zip --catalog-file ./catalog.json --yes --json`,
+    `agenthub-cli publish --namespace ${automationNamespace} --file ./skill.zip --catalog-file ./catalog.json --author-name "$GIT_AUTHOR_NAME" --yes --json`,
     `agenthub-cli relations sync --skill @${automationNamespace}/your-skill --file ./relations.json --yes --json`,
     `agenthub-cli recommend --skill @${automationNamespace}/your-skill --json`,
   ].join('\n')
@@ -279,7 +279,7 @@ export function PublishPage() {
         <div className="mt-6 grid gap-3 md:grid-cols-2">
           {([
             ['manual', '手工发布', '选择空间、上传 ZIP，可选补充目录画像。'],
-            ['automation', 'Agent / CI 批量发布', '复制 CLI 命令，由用户或流水线注入 token。'],
+            ['automation', 'Agent / CI 批量发布', 'open-access 可直接提交；CI 只需补齐作者。'],
           ] as const).map(([mode, title, description]) => (
             <button
               key={mode}
@@ -347,7 +347,7 @@ export function PublishPage() {
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <CopyCommandBlock
             title="Agent / CI 批量发布命令"
-            description="平台不自动申请 token。由用户、CI 或运行环境提供 token 后执行。"
+            description="open-access 先直接执行；只有服务端返回 401/403 时，再由用户、CI 或运行环境提供 token。"
             code={automationCommand}
           />
           <Card className="space-y-4 border-slate-200 p-5">
