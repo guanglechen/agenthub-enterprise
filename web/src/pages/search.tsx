@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useRef, useState } from 'react'
+import { startTransition, useEffect, useRef, useState, type RefObject } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Filter, Loader2, Search as SearchIcon, Sparkles } from 'lucide-react'
@@ -57,6 +57,16 @@ function scrollToTopOnPageChange() {
   }
 }
 
+function scrollToResultsOnCoverageClick(resultsRef: RefObject<HTMLDivElement | null>) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.requestAnimationFrame(() => {
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
+}
+
 /**
  * Skill discovery page with synchronized URL state.
  *
@@ -107,13 +117,24 @@ export function SearchPage() {
   const stage = searchParams.stage || ''
   const topology = searchParams.topology || ''
   const stack = searchParams.stack || ''
-  const sort = searchParams.sort || 'newest'
+  const sort = searchParams.sort || 'recommended'
   const page = searchParams.page ?? 0
   const starredOnly = searchParams.starredOnly ?? false
   const [queryInput, setQueryInput] = useState(q)
   const [domainInput, setDomainInput] = useState(domain)
   const [stackInput, setStackInput] = useState(stack)
+  const resultsRef = useRef<HTMLDivElement>(null)
   const previousPageRef = useRef(page)
+  const isDefaultMarketplaceView = !q
+    && !selectedLabel
+    && !assetType
+    && !domain
+    && !stage
+    && !topology
+    && !stack
+    && !starredOnly
+    && page === 0
+    && sort === 'recommended'
 
   const buildSearchState = (overrides: Partial<{
     q: string
@@ -186,7 +207,7 @@ export function SearchPage() {
     sort: 'recommended',
     page: 0,
     size: COVERAGE_SAMPLE_SIZE,
-  }, !isAuthLoading && !isAuthFetching)
+  }, !isAuthLoading && !isAuthFetching && isDefaultMarketplaceView)
   const { data: labels } = useVisibleLabels()
   const {
     data: starredSkills,
@@ -351,6 +372,7 @@ export function SearchPage() {
         starredOnly: false,
       }),
     })
+    scrollToResultsOnCoverageClick(resultsRef)
   }
 
   const handleSkillClick = (namespace: string, slug: string) => {
@@ -433,12 +455,14 @@ export function SearchPage() {
         </div>
       </section>
 
-      <CapabilityCoveragePanel
-        skills={coverageData?.items ?? []}
-        total={coverageData?.total}
-        isLoading={isLoadingCoverage}
-        onApplyFilter={handleCoverageFilter}
-      />
+      {isDefaultMarketplaceView ? (
+        <CapabilityCoveragePanel
+          skills={coverageData?.items ?? []}
+          total={coverageData?.total}
+          isLoading={isLoadingCoverage}
+          onApplyFilter={handleCoverageFilter}
+        />
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="space-y-6">
@@ -561,7 +585,7 @@ export function SearchPage() {
           </div>
         </aside>
 
-        <div className="space-y-6">
+        <div ref={resultsRef} className="space-y-6">
           <div className="enterprise-panel p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap items-center gap-2">

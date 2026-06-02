@@ -89,39 +89,55 @@ describe('capability coverage model', () => {
           topology: 'batch',
         }),
       }),
-      createSkill({ id: 4, displayName: 'legacy skill' }),
+      createSkill({
+        id: 4,
+        displayName: 'operate runbook',
+        downloadCount: 1,
+        catalogProfile: catalog({
+          assetType: 'integration',
+          domain: 'zz-ops',
+          stage: 'operate',
+          topology: 'worker',
+        }),
+      }),
+      createSkill({ id: 5, displayName: 'legacy skill' }),
     ], 8)
 
     expect(model.totalSkills).toBe(8)
-    expect(model.sampleSize).toBe(4)
+    expect(model.sampleSize).toBe(5)
     expect(model.truncated).toBe(true)
-    expect(model.profiledCount).toBe(3)
-    expect(model.catalogCoverageRatio).toBe(0.75)
+    expect(model.profiledCount).toBe(4)
+    expect(model.catalogCoverageRatio).toBe(0.8)
     expect(model.coveredDimensionCount).toBe(5)
-    expect(model.coveredStageCount).toBe(3)
+    expect(model.coveredStageCount).toBe(4)
     expect(model.agentReadyCount).toBe(1)
     expect(model.relatedCount).toBe(1)
-    expect(model.reusedCount).toBe(2)
-    expect(model.maturityCounts).toMatchObject({ 0: 1, 1: 1, 2: 1, 4: 1 })
+    expect(model.reusedCount).toBe(3)
+    expect(model.maturityCounts).toMatchObject({ 0: 1, 1: 1, 2: 2, 4: 1 })
 
     const architecture = model.dimensions.find((dimension) => dimension.id === 'architecture')
-    expect(architecture?.count).toBe(2)
+    expect(architecture?.count).toBe(1)
     expect(architecture?.stages.develop).toBe(1)
 
     const deliveryFlow = model.dimensions.find((dimension) => dimension.id === 'delivery-flow')
-    expect(deliveryFlow?.count).toBe(2)
+    expect(deliveryFlow?.count).toBe(1)
     expect(deliveryFlow?.stages.test).toBe(1)
-    expect(deliveryFlow?.stages.release).toBe(1)
+    expect(deliveryFlow?.stages.release).toBe(0)
+
+    const maintenance = model.dimensions.find((dimension) => dimension.id === 'maintenance')
+    expect(maintenance?.count).toBe(1)
+    expect(maintenance?.stages.operate).toBe(1)
 
     expect(model.topDomains).toEqual([
       { value: 'order', count: 2 },
       { value: 'payment', count: 1 },
+      { value: 'zz-ops', count: 1 },
     ])
     expect(model.topStacks).toEqual([
       { value: 'maven', count: 2 },
       { value: 'spring-boot3', count: 1 },
     ])
     expect(model.gapHints).toContainEqual({ label: '未编目 / 存量资产', count: 1 })
-    expect(model.gapHints).toContainEqual({ label: '尚未建立关联', count: 3 })
+    expect(model.gapHints).toContainEqual({ label: '尚未建立关联', count: 4 })
   })
 })

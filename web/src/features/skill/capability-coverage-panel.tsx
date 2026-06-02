@@ -58,84 +58,39 @@ const KNOWLEDGE_DIMENSIONS: DimensionDefinition[] = [
   {
     id: 'architecture',
     title: '架构类知识',
-    description: '服务拓扑、工程框架、微服务结构和系统边界。',
+    description: '按资产类型 microservice 统计，点击后进入同口径结果列表。',
     filter: { assetType: 'microservice', sort: 'recommended' },
-    match: (skill) => {
-      const profile = skill.catalogProfile
-      const keywords = collectSearchTokens(skill)
-      return profile?.assetType === 'microservice'
-        || profile?.assetType === 'product'
-        || Boolean(profile?.topology)
-        || keywords.includes('architecture')
-        || keywords.includes('framework')
-        || keywords.includes('microservice')
-    },
+    match: (skill) => skill.catalogProfile?.assetType === 'microservice',
   },
   {
     id: 'development',
     title: '开发类知识',
-    description: '编码实现、脚手架、领域开发和工程初始化。',
+    description: '按适用阶段 develop 统计，覆盖编码实现和工程开发态资产。',
     filter: { stage: 'develop', sort: 'recommended' },
-    match: (skill) => {
-      const profile = skill.catalogProfile
-      return ['scaffold', 'microservice', 'business'].includes(profile?.assetType ?? '')
-        || ['bootstrap', 'develop'].includes(profile?.stage ?? '')
-    },
+    match: (skill) => skill.catalogProfile?.stage === 'develop',
   },
   {
     id: 'maintenance',
     title: '维护类知识',
-    description: '发布后维护、Agent 托管、巡检和持续演进。',
+    description: '按适用阶段 operate 统计，聚焦上线后的维护和持续演进。',
     filter: { stage: 'operate', sort: 'recommended' },
-    match: (skill) => {
-      const profile = skill.catalogProfile
-      return ['operate', 'release'].includes(profile?.stage ?? '')
-        || profile?.maintenanceMode === 'agent'
-        || (skill.relationCount ?? 0) > 0
-    },
+    match: (skill) => skill.catalogProfile?.stage === 'operate',
   },
   {
     id: 'delivery-flow',
     title: '开发流程类知识',
-    description: '测试、质量治理、CI/CD、发布和平台集成流程。',
+    description: '按资产类型 quality 统计，点击后只筛质量治理类 Skill。',
     filter: { assetType: 'quality', sort: 'recommended' },
-    match: (skill) => {
-      const profile = skill.catalogProfile
-      const keywords = collectSearchTokens(skill)
-      return ['quality', 'integration'].includes(profile?.assetType ?? '')
-        || ['test', 'release'].includes(profile?.stage ?? '')
-        || keywords.includes('ci')
-        || keywords.includes('governance')
-        || keywords.includes('deploy')
-    },
+    match: (skill) => skill.catalogProfile?.assetType === 'quality',
   },
   {
     id: 'business-product',
     title: '业务/产品知识',
-    description: '业务规则、产品方案、领域流程和交付语境。',
+    description: '按资产类型 business 统计，聚焦业务规则和领域流程资产。',
     filter: { assetType: 'business', sort: 'recommended' },
-    match: (skill) => {
-      const profile = skill.catalogProfile
-      return ['business', 'product'].includes(profile?.assetType ?? '') || Boolean(profile?.domain)
-    },
+    match: (skill) => skill.catalogProfile?.assetType === 'business',
   },
 ]
-
-function collectSearchTokens(skill: SkillSummary) {
-  return [
-    skill.displayName,
-    skill.summary,
-    skill.catalogProfile?.assetType,
-    skill.catalogProfile?.domain,
-    skill.catalogProfile?.stage,
-    skill.catalogProfile?.topology,
-    ...(skill.catalogProfile?.stack ?? []),
-    ...(skill.catalogProfile?.keywords ?? []),
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase()
-}
 
 function countCoreCatalogFields(skill: SkillSummary) {
   const profile = skill.catalogProfile
@@ -295,7 +250,7 @@ export function CapabilityCoveragePanel({ skills, total, isLoading = false, onAp
             </div>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">能力覆盖地图</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              把单个 Skill 的标签、目录画像和复用信号聚合成平台级视图，先看覆盖体系，再进入卡片明细。
+              仅在技能广场默认总览状态展示。进入搜索、筛选或翻页后，页面切换为卡片结果列表；地图数字和点击筛选使用同一套口径。
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:min-w-[520px]">

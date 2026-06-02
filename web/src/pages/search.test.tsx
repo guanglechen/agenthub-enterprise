@@ -30,6 +30,8 @@ vi.mock('react-i18next', async () => {
 vi.mock('@/features/auth/use-auth', () => ({
   useAuth: () => ({
     isAuthenticated: true,
+    isLoading: false,
+    isFetching: false,
   }),
 }))
 
@@ -85,7 +87,7 @@ vi.mock('@/app/page-shell-style', () => ({
 const useSearchSkillsMock = vi.fn()
 
 vi.mock('@/shared/hooks/use-skill-queries', () => ({
-  useSearchSkills: () => useSearchSkillsMock(),
+  useSearchSkills: (...args: unknown[]) => useSearchSkillsMock(...args),
 }))
 
 vi.mock('@/shared/hooks/use-label-queries', () => ({
@@ -232,6 +234,46 @@ describe('SearchPage', () => {
 
     expect(html).toContain('skill-card')
     expect(html).not.toContain('empty-state')
+  })
+
+  it('shows the capability coverage map only in the default marketplace view', () => {
+    useSearchMock.mockReturnValue({
+      q: '',
+      label: '',
+      sort: 'recommended',
+      page: 0,
+      starredOnly: false,
+    })
+
+    const html = renderToStaticMarkup(<SearchPage />)
+
+    expect(html).toContain('能力覆盖地图')
+    expect(useSearchSkillsMock.mock.calls[1]?.[0]).toEqual({
+      q: '',
+      sort: 'recommended',
+      page: 0,
+      size: 200,
+    })
+  })
+
+  it('hides the capability coverage map after entering search results mode', () => {
+    useSearchMock.mockReturnValue({
+      q: 'agent',
+      label: '',
+      sort: 'recommended',
+      page: 0,
+      starredOnly: false,
+    })
+
+    const html = renderToStaticMarkup(<SearchPage />)
+
+    expect(html).not.toContain('能力覆盖地图')
+    expect(useSearchSkillsMock).toHaveBeenNthCalledWith(2, {
+      q: '',
+      sort: 'recommended',
+      page: 0,
+      size: 200,
+    }, false)
   })
 
   it('shows a generic empty state when the default discovery list is empty', () => {
