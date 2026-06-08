@@ -14,3 +14,4 @@ When this skill is invoked:
    - recommended skills
    - next actions
 5. Prefer the platform install plan over ad hoc search so the agent follows enterprise defaults.
+6. When recommending a new Skill contribution, describe the inferred catalog profile and labels that should be published with it.

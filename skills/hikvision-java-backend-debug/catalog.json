@@ -1,0 +1,19 @@
+{
+  "assetType": "quality",
+  "domain": "java-backend",
+  "stage": "develop",
+  "topology": "shared-lib",
+  "stack": ["java", "maven", "spring-boot"],
+  "keywords": [
+    "hikvision",
+    "java",
+    "backend",
+    "maven",
+    "debug",
+    "package",
+    "spring-boot",
+    "local-toolchain"
+  ],
+  "ownerTeam": "研发平台",
+  "maintenanceMode": "ACTIVE"
+}

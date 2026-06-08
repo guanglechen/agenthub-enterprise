@@ -42,8 +42,38 @@ public class WellKnownController {
                         "Call /api/v1/agent/profile to understand capabilities and workflows.",
                         "Use agenthub-cli as the primary machine interface.",
                         "Use open-access direct publish when available; ask for AGENTHUB_TOKEN only after the deployment returns 401 or 403.",
-                        "Resolve the displayed Skill author from SKILL.md, CLI flags, git config, or CI actor metadata before publishing.",
+                        "Before publishing, infer catalog profile fields and labels from the Skill package and workspace context.",
+                        "Resolve the displayed Skill contributor from SKILL.md, CLI flags, environment variables, git config, or CI actor metadata before publishing.",
+                        "If no contributor can be resolved, ask the user for the contributor display name before publishing.",
                         "Do not replace the Skill market model with a separate top-level asset protocol."
+                )),
+                Map.entry("skillContributionPolicy", Map.ofEntries(
+                        Map.entry("inferCatalogProfileBeforePublish", true),
+                        Map.entry("inferLabelsBeforePublish", true),
+                        Map.entry("requireDisplayedContributor", true),
+                        Map.entry("missingContributorAction", "ask-user-for-contributor-display-name-before-publish"),
+                        Map.entry("publishCommand", "agenthub-cli publish --namespace <namespace> --file <bundle.zip> --catalog-file <catalog.json> --author-name \"<contributor>\" --yes"),
+                        Map.entry("postPublishCommands", List.of(
+                                "agenthub-cli labels add --skill @<namespace>/<slug> --label <label>",
+                                "agenthub-cli relations sync --skill @<namespace>/<slug> --file <relations.json>"
+                        ))
+                )),
+                Map.entry("capabilityLayers", List.of(
+                        Map.of(
+                                "layerId", "development-standards",
+                                "displayName", "第一层：开发规范层",
+                                "intent", "编码、接口、配置、日志、CI、测试、发布和运维规范"
+                        ),
+                        Map.of(
+                                "layerId", "capability-open",
+                                "displayName", "第二层：能力开放层",
+                                "intent", "CLI、Skill、Harness、模板、Dry Run、可观测和排查能力"
+                        ),
+                        Map.of(
+                                "layerId", "business-orchestration",
+                                "displayName", "第三层：业务编排层",
+                                "intent", "业务能力、产品知识、跨服务协作边界和 Agent 连续调用"
+                        )
                 )),
                 Map.entry("assetFamilies", List.of(
                         "claude-agent-plugin",

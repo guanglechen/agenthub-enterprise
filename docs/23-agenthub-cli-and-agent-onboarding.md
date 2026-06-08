@@ -81,6 +81,7 @@ Agent 首先读取：
 - 推荐优先使用哪个 CLI
 - open-access 写操作与严格认证部署的 token 边界
 - 作者归因如何从 SKILL.md、CLI 参数、git 或 CI actor 获取
+- Agent 贡献 Skill 前如何补齐 catalogProfile、标签、贡献者显示名
 - workspace 怎么初始化
 - install-plan 怎么调用
 
@@ -153,6 +154,26 @@ agenthub-cli harness verify --dir . --json
 
 ```bash
 agenthub-cli harness contribute --dir . --name order-service-harness --dry-run
+```
+
+### 4.6 Agent 贡献 Skill 的发布前置要求
+
+Agent 不是只上传一个 zip。只要它代表用户向市场贡献 Skill，就必须把后续检索和复用需要的数据一并补齐：
+
+1. 读取 `SKILL.md`、`references/`、脚本和工程上下文，先理解能力边界。
+2. 推断目录画像：`assetType`、`domain`、`stage`、`topology`、`stack`、`keywords`。
+3. 推断标签：围绕技术栈、生命周期、业务域、能力类型生成短标签。
+4. 解析贡献者显示名：优先 SKILL.md，其次 CLI 参数、环境变量、git config、CI actor。
+5. 如果贡献者缺失，必须问用户：`这个 Skill 在平台上显示的贡献者姓名是什么？`
+6. 发布时带 `--catalog-file` 和 `--author-name`，发布后用 `labels add`、`relations sync` 补齐市场发现数据。
+
+推荐命令：
+
+```bash
+agenthub-cli publish --namespace team-alpha --file ./bundle.zip --catalog-file ./catalog.json --author-name "张三" --yes
+agenthub-cli labels add --skill @team-alpha/<skill-slug> --label java
+agenthub-cli labels add --skill @team-alpha/<skill-slug> --label backend-debug
+agenthub-cli relations sync --skill @team-alpha/<skill-slug> --file ./relations.json
 ```
 
 ## 5. Claude Code 插件市场协同

@@ -5,9 +5,11 @@ import com.iflytek.skillhub.dto.AgentInstallPlanRequest;
 import com.iflytek.skillhub.dto.AgentInstallPlanResponse;
 import com.iflytek.skillhub.dto.AgentInstallPlanCommandResponse;
 import com.iflytek.skillhub.dto.AgentInstallPlanSkillResponse;
+import com.iflytek.skillhub.dto.AgentCapabilityLayerResponse;
 import com.iflytek.skillhub.dto.AgentPlatformAuthResponse;
 import com.iflytek.skillhub.dto.AgentPlatformBundleResponse;
 import com.iflytek.skillhub.dto.AgentPlatformProfileResponse;
+import com.iflytek.skillhub.dto.AgentSkillContributionPolicyResponse;
 import com.iflytek.skillhub.dto.AgentWorkspaceContextResponse;
 import com.iflytek.skillhub.dto.SkillRecommendationContextRequest;
 import com.iflytek.skillhub.dto.SkillRecommendationResponse;
@@ -33,7 +35,11 @@ public class AgentPlatformAppService {
                     "installPlan", true,
                     "openAccessRead", true,
                     "openAccessPublish", true,
-                    "claudeCodeMarketplace", true
+                    "claudeCodeMarketplace", true,
+                    "agentContributionGovernance", true,
+                    "catalogProfileInference", true,
+                    "labelInference", true,
+                    "contributorAttribution", true
             ),
             List.of("product", "scaffold", "business", "microservice", "quality", "integration"),
             List.of("discover", "bootstrap", "develop", "test", "release", "operate"),
@@ -71,7 +77,10 @@ public class AgentPlatformAppService {
                     "Build an install plan from workspace context before searching assets ad hoc.",
                     "Install reusable quality and workflow skills into the user skill directory; install project-specific scaffolds and business skills into the workspace.",
                     "Open-access deployments support direct publish without AGENTHUB_TOKEN. If a deployment returns 401 or 403, ask the runtime owner for a token instead of auto-applying for one.",
-                    "When publishing from CI, resolve the displayed author from SKILL.md, CLI flags, git config, or CI actor metadata before uploading."
+                    "Before publishing a Skill, infer catalog profile fields such as assetType, domain, stage, topology, stack, and keywords from the package and workspace.",
+                    "Before publishing a Skill, infer labels from the package purpose and attach labels after publish when they are not already present.",
+                    "Resolve the displayed contributor from SKILL.md, CLI flags, environment variables, git config, or CI actor metadata before uploading.",
+                    "If no contributor can be resolved, ask the user for the displayed contributor name and do not publish anonymously by default."
             ),
             List.of(
                     "curl -fsS <base-url>/llms.txt",
@@ -87,6 +96,58 @@ public class AgentPlatformAppService {
                     false,
                     "direct-publish",
                     "Do not ask for AGENTHUB_TOKEN in open-access deployments. Publish directly; only ask for a token after the server rejects the request with 401 or 403."
+            ),
+            new AgentSkillContributionPolicyResponse(
+                    true,
+                    true,
+                    true,
+                    List.of(
+                            "Read SKILL.md and related references to understand the capability boundary before publishing.",
+                            "Infer catalog profile fields: assetType, domain, stage, topology, stack, keywords, and ownerTeam when possible.",
+                            "Infer concise labels from the Skill purpose, technology stack, lifecycle stage, and enterprise domain.",
+                            "Resolve the displayed contributor before upload; if missing, ask the user for the contributor display name.",
+                            "Publish with --catalog-file and --author-name, then attach labels with labels add and synchronize relations when relevant."
+                    ),
+                    List.of(
+                            "SKILL.md frontmatter author, authorName, x-agenthub-author, or maintainer",
+                            "CLI flags --author-name and --author-email",
+                            "AGENTHUB_AUTHOR_NAME and AGENTHUB_AUTHOR_EMAIL",
+                            "git config user.name and user.email",
+                            "CI actor metadata such as GITHUB_ACTOR, GITLAB_USER_NAME, or BUILD_USER",
+                            "ask the user for the contributor display name"
+                    ),
+                    "ask-user-for-contributor-display-name-before-publish",
+                    List.of(
+                            "agenthub-cli publish --namespace <namespace> --file <bundle.zip> --catalog-file <catalog.json> --author-name \"<contributor>\" --yes",
+                            "agenthub-cli labels add --skill @<namespace>/<slug> --label <label>",
+                            "agenthub-cli relations sync --skill @<namespace>/<slug> --file <relations.json>"
+                    )
+            ),
+            List.of(
+                    new AgentCapabilityLayerResponse(
+                            "development-standards",
+                            "第一层：开发规范层",
+                            "把编码、接口、配置、日志、CI、测试、发布和运维规范沉淀成技术底座。",
+                            List.of("quality", "integration"),
+                            List.of("bootstrap", "develop", "test", "release", "operate"),
+                            "Prefer user-level installation for reusable standards and quality baselines."
+                    ),
+                    new AgentCapabilityLayerResponse(
+                            "capability-open",
+                            "第二层：能力开放层",
+                            "把研发动作封装成 CLI、Skill、Harness、模板、Dry Run 和可观测能力，让服务可接入、可排查、可复用。",
+                            List.of("scaffold", "microservice", "quality", "integration"),
+                            List.of("bootstrap", "develop", "test", "release"),
+                            "Use install-plan to choose workspace-level scaffolds and user-level reusable automation skills."
+                    ),
+                    new AgentCapabilityLayerResponse(
+                            "business-orchestration",
+                            "第三层：业务编排层",
+                            "把业务能力、产品知识和跨服务协作边界组织成 Agent 可连续调用的业务编排能力。",
+                            List.of("business", "product", "microservice"),
+                            List.of("discover", "develop", "operate"),
+                            "Use catalog profile, labels, and relations together so Agents can find business chains instead of isolated cards."
+                    )
             )
     );
 

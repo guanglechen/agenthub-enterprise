@@ -1,0 +1,13 @@
+{
+  "namespace": "global",
+  "visibility": "PUBLIC",
+  "packageFile": "hikvision-java-backend-debug.zip",
+  "catalogFile": "catalog.json",
+  "labels": [
+    "hikvision",
+    "java",
+    "maven",
+    "backend-debug",
+    "local-toolchain"
+  ]
+}

@@ -153,6 +153,7 @@ This tells you:
 - what the platform is for
 - which bundles are recommended by default
 - which asset types and domains are expected
+- how to publish Agent-contributed Skills with catalog profile, labels, and contributor attribution
 
 ### Step 2. Start without a token and detect the auth boundary
 
@@ -200,7 +201,7 @@ agenthub-cli agent install-plan \
   --json
 ```
 
-### Step 5. Install required skills and Harness Packages
+### Step 5. Install the right skills automatically
 
 Each item in `requiredSkills` and `recommendedSkills` can include:
 
@@ -234,7 +235,52 @@ agenthub-cli harness propose --dir . --json
 agenthub-cli harness verify --dir . --json
 ```
 
-### Step 6. Optional local connector plugin
+### Step 6. Publish Agent-contributed Skills with governance metadata
+
+When the user asks you to contribute a new Skill back to the market, do not
+only upload the zip. First understand the Skill boundary and prepare the
+metadata that lets other Agents discover it later.
+
+Required Agent behavior before publishing:
+
+1. Read `SKILL.md`, `references/`, scripts, and the workspace context.
+2. Infer a catalog profile:
+   - `assetType`: one of `product`, `scaffold`, `business`, `microservice`, `quality`, `integration`
+   - `domain`: business or technical domain, for example `java-backend`, `ci`, `hkportal`
+   - `stage`: one of `discover`, `bootstrap`, `develop`, `test`, `release`, `operate`
+   - `topology`: for example `crud-api`, `bff`, `event-consumer`, `batch`, `shared-lib`
+   - `stack`: concise technology stack values such as `java`, `maven`, `spring-boot`
+   - `keywords`: short search terms users and Agents are likely to use
+3. Infer labels from the Skill purpose, lifecycle stage, technology stack, and enterprise domain.
+4. Resolve the displayed contributor before upload:
+   - prefer `SKILL.md` frontmatter `author`, `authorName`, `x-agenthub-author`, or `maintainer`
+   - then CLI flags `--author-name` and `--author-email`
+   - then `AGENTHUB_AUTHOR_NAME` and `AGENTHUB_AUTHOR_EMAIL`
+   - then `git config user.name` and `git config user.email`
+   - then CI actor metadata such as `GITHUB_ACTOR`, `GITLAB_USER_NAME`, or `BUILD_USER`
+5. If no contributor can be resolved, ask the user: `这个 Skill 在平台上显示的贡献者姓名是什么？`
+6. Publish with a catalog file, then attach labels and relations when relevant.
+
+Recommended publish sequence:
+
+```bash
+agenthub-cli publish \
+  --namespace team-alpha \
+  --file ./bundle.zip \
+  --catalog-file ./catalog.json \
+  --author-name "<contributor display name>" \
+  --yes
+
+agenthub-cli labels add --skill @team-alpha/<skill-slug> --label java
+agenthub-cli labels add --skill @team-alpha/<skill-slug> --label backend-debug
+agenthub-cli relations sync --skill @team-alpha/<skill-slug> --file ./relations.json
+```
+
+Do not publish anonymous Agent-generated Skills by default. If the user refuses
+to provide a contributor display name, explain that the platform uses the author
+field for marketplace trust and maintenance ownership.
+
+### Step 7. Optional local connector plugin
 
 If your environment already has the Claude Code connector plugin installed from the enterprise marketplace, you can continue with the plugin after workspace bootstrap. The plugin internally reuses `agenthub-cli`.
 

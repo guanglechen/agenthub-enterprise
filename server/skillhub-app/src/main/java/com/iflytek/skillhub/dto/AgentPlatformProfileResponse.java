@@ -15,5 +15,7 @@ public record AgentPlatformProfileResponse(
         List<AgentPlatformBundleResponse> defaultBundles,
         List<String> onboardingSteps,
         List<String> recommendedEntrypoints,
-        AgentPlatformAuthResponse auth
+        AgentPlatformAuthResponse auth,
+        AgentSkillContributionPolicyResponse skillContributionPolicy,
+        List<AgentCapabilityLayerResponse> capabilityLayers
 ) {}

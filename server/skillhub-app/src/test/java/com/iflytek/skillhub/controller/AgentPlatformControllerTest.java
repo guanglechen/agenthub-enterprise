@@ -4,9 +4,11 @@ import com.iflytek.skillhub.dto.AgentInstallPlanRequest;
 import com.iflytek.skillhub.dto.AgentInstallPlanResponse;
 import com.iflytek.skillhub.dto.AgentInstallPlanCommandResponse;
 import com.iflytek.skillhub.dto.AgentInstallPlanSkillResponse;
+import com.iflytek.skillhub.dto.AgentCapabilityLayerResponse;
 import com.iflytek.skillhub.dto.AgentPlatformAuthResponse;
 import com.iflytek.skillhub.dto.AgentPlatformBundleResponse;
 import com.iflytek.skillhub.dto.AgentPlatformProfileResponse;
+import com.iflytek.skillhub.dto.AgentSkillContributionPolicyResponse;
 import com.iflytek.skillhub.dto.AgentWorkspaceContextResponse;
 import com.iflytek.skillhub.service.AgentPlatformAppService;
 import java.util.List;
@@ -59,7 +61,24 @@ class AgentPlatformControllerTest {
                 )),
                 List.of("connect first"),
                 List.of("agenthub-cli marketplace validate --file .claude-plugin/marketplace.json --json"),
-                new AgentPlatformAuthResponse("provided-by-user-or-ci", "set AGENTHUB_TOKEN")
+                new AgentPlatformAuthResponse("provided-by-user-or-ci", "set AGENTHUB_TOKEN"),
+                new AgentSkillContributionPolicyResponse(
+                        true,
+                        true,
+                        true,
+                        List.of("infer catalog profile before publish"),
+                        List.of("ask the user for the contributor display name"),
+                        "ask-user-for-contributor-display-name-before-publish",
+                        List.of("agenthub-cli publish --catalog-file catalog.json --author-name <name>")
+                ),
+                List.of(new AgentCapabilityLayerResponse(
+                        "development-standards",
+                        "第一层：开发规范层",
+                        "baseline",
+                        List.of("quality"),
+                        List.of("develop"),
+                        "install as reusable user skill"
+                ))
         ));
 
         mockMvc.perform(get("/api/v1/agent/profile"))
@@ -71,7 +90,10 @@ class AgentPlatformControllerTest {
                 .andExpect(jsonPath("$.data.defaultBundles[0].bundleId").value("java-microservice-baseline"))
                 .andExpect(jsonPath("$.data.onboardingSteps[0]").value("connect first"))
                 .andExpect(jsonPath("$.data.recommendedEntrypoints[0]").value("agenthub-cli marketplace validate --file .claude-plugin/marketplace.json --json"))
-                .andExpect(jsonPath("$.data.auth.tokenMode").value("provided-by-user-or-ci"));
+                .andExpect(jsonPath("$.data.auth.tokenMode").value("provided-by-user-or-ci"))
+                .andExpect(jsonPath("$.data.skillContributionPolicy.inferCatalogProfileBeforePublish").value(true))
+                .andExpect(jsonPath("$.data.skillContributionPolicy.missingContributorAction").value("ask-user-for-contributor-display-name-before-publish"))
+                .andExpect(jsonPath("$.data.capabilityLayers[0].layerId").value("development-standards"));
     }
 
     @Test
@@ -90,7 +112,24 @@ class AgentPlatformControllerTest {
                                 List.of(),
                                 List.of("call profile"),
                                 List.of("agenthub-cli harness browse --json"),
-                                new AgentPlatformAuthResponse("provided-by-user-or-ci", "set AGENTHUB_TOKEN")
+                                new AgentPlatformAuthResponse("provided-by-user-or-ci", "set AGENTHUB_TOKEN"),
+                                new AgentSkillContributionPolicyResponse(
+                                        true,
+                                        true,
+                                        true,
+                                        List.of("infer catalog profile before publish"),
+                                        List.of("ask the user for the contributor display name"),
+                                        "ask-user-for-contributor-display-name-before-publish",
+                                        List.of("agenthub-cli publish --catalog-file catalog.json --author-name <name>")
+                                ),
+                                List.of(new AgentCapabilityLayerResponse(
+                                        "development-standards",
+                                        "第一层：开发规范层",
+                                        "baseline",
+                                        List.of("quality"),
+                                        List.of("develop"),
+                                        "install as reusable user skill"
+                                ))
                         ),
                         new AgentWorkspaceContextResponse(
                                 "payments",

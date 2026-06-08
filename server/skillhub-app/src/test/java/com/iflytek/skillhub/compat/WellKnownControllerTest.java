@@ -45,6 +45,9 @@ class WellKnownControllerTest {
                 .andExpect(jsonPath("$.endpoints.agentProfile").value("/api/v1/agent/profile"))
                 .andExpect(jsonPath("$.cli.package").value("/downloads/agenthub-cli-0.1.4.tgz"))
                 .andExpect(jsonPath("$.agentInstructions[0]").value("Read /llms.txt and /registry/skill.md before using the platform."))
+                .andExpect(jsonPath("$.skillContributionPolicy.inferCatalogProfileBeforePublish").value(true))
+                .andExpect(jsonPath("$.skillContributionPolicy.missingContributorAction").value("ask-user-for-contributor-display-name-before-publish"))
+                .andExpect(jsonPath("$.capabilityLayers[0].layerId").value("development-standards"))
                 .andExpect(jsonPath("$.assetFamilies[0]").value("claude-agent-plugin"));
     }
 }

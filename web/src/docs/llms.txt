@@ -39,9 +39,17 @@ agenthub-cli search --q payment --domain payment --json
 
 Token rule:
 
-- read-only discovery may work without a token in open-access deployments
-- publishing, catalog updates, labels, relations, and private/team assets require a user-provided or CI-provided token
-- Agents must not auto-apply for tokens; ask the user or read `AGENTHUB_TOKEN`
+- start without a token in open-access deployments
+- try profile, search, install-plan, install, and publish directly first
+- ask for `AGENTHUB_TOKEN` only after the deployment returns 401/403 or the user needs private/team assets
+
+Agent Skill contribution rule:
+
+- before publishing a Skill, infer catalog profile fields and labels from the Skill content and workspace context
+- publish with `--catalog-file` and a displayed contributor
+- resolve contributor from SKILL.md, CLI flags, env, git config, or CI actor metadata
+- if no contributor can be resolved, ask the user for the contributor display name before publishing
+- after publish, attach labels and sync relations when relevant so other Agents can discover the Skill
 
 Branding defaults:
 
